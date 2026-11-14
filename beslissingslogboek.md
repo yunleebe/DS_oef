@@ -27,6 +27,8 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
   wordt uitgesloten voor de hele analyse. Dit wordt bovenaan in de app vermeld.
 - **Reden:** fietsers mogen niet op de autosnelweg. Die ongevallen zouden het aandeel
   fietsongevallen in gemeenten met een autosnelweg verlagen.
+- **Gewijzigd door beslissing 22:** de autosnelweg wordt niet meer uit de data gehaald. Ze staat
+  standaard uit in het filter Wegtype en kan aangezet worden.
 
 ### 3. Hoe gaan we om met Brussel, dat geen provincie heeft?
 - **Antwoord:** vul "Brussels Hoofdstedelijk Gewest" in als provincie voor Brussel.
@@ -92,7 +94,7 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
 
 ### 11. Wat doen we met `CD_ROAD_TYPE` 9 (onbekend, 1.502 rijen)?
 - **Antwoord:** onbekend wegtype blijft in de data. We verwijderen geen rijen. Enkel
-  Autosnelweg is uitgesloten.
+  Autosnelweg is uitgesloten. (Sinds beslissing 22 verwijderen we helemaal geen rijen meer.)
 - **Reden:** 1.502 rijen zijn veel, en er zitten ongevallen met een fiets of voetganger bij. Er is
   geen reden om ze uit te sluiten.
 - **Controle door Claude:** de 1.502 ongevallen zijn 0,56% van `Fact_Accidents`. Daarvan hebben er
@@ -190,10 +192,86 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
 - **Reden:** Yun heeft tests niet geleerd in de opleiding. De opdracht noemt tests wel bij de
   GitHub-repo; dat verschil blijft dus bestaan.
 
-### Aannames van Claude bij deze stap (nog niet bevestigd door Yun)
-- **Autosnelweg:** de rijen verdwijnen in `Fact_Accidents` (21.860 van 289.532). De dimensies
-  worden gebouwd vóór die uitsluiting, dus `Dim_Road_Type` bevat nog "Autosnelweg" en `Dim_NIS`
-  heeft alle 581 gemeenten.
+### 21. Opbouw van de app: kaarten en filters
+- **Antwoord:** bovenaan de belangrijke cijfers als kaarten (card visuals). Filters in de zijbalk,
+  meerkeuze, standaard alles, toegepast op alle visuals: Year; Region > Province > Municipality
+  (trapsgewijs: Region beperkt Province, Province beperkt Municipality); Weather; Road Condition;
+  Light Condition; Crossway; Road Type; Class Accidents; Obstacles; Road User Type (een ongeval telt
+  mee als Road User Type1 OF Road User Type2 geselecteerd is). Taal: Nederlands. Getalnotatie:
+  Belgisch (86.300; 13,0 %).
+- **Reden:** geen reden opgegeven.
+- **Uitvoering:** de filterlogica staat in `pipeline.py` (`filter_opties`, `filter_ongevallen`,
+  `bereken_kerncijfers`, zonder Streamlit), de zijbalk en kaarten in `app.py`.
+- **Controle:** de filters en kaarten zijn getest tegen onafhankelijke berekeningen met pandas
+  (zonder filters, per jaar, per gewest/provincie/gemeente, weggebruiker TYPE1 OF TYPE2,
+  combinaties van filters, lege selectie, trapsgewijs gedrag) en in de app zelf, waarbij de zijbalk
+  bediend werd zoals een gebruiker. Alles klopte.
+
+### 22. Autosnelweg in de data houden, standaard uit in het filter Wegtype
+- **Antwoord:** optie A. De autosnelweg blijft in `Fact_Accidents` en het filter Wegtype heeft ze als
+  optie, maar standaard uitgezet. Zo kan de gebruiker de kaarten met en zonder autosnelweg
+  vergelijken. Het filter Wegtype is een uitzondering op "standaard = alles"; de standaard blijft
+  zichtbaar ("Autosnelweg staat standaard uit"). `Gemeente_Jaar` wordt aangepast: als de autosnelweg
+  uit het filter staat, toont `Gemeente_Jaar` de juiste data.
+- **Reden:** de cijfers die de autosnelweg betreffen, veranderen enkel bij de kaarten waar het
+  totaal aantal ongevallen in zit. Door het in de slicer te zetten ziet de gebruiker zelf het effect,
+  in plaats van dat het verborgen zit in de pipeline.
+- **Het effect op de kaarten (zonder filters), berekend uit de ruwe data:**
+
+| Kaart | Zonder autosnelweg (standaard) | Met autosnelweg |
+|---|---|---|
+| Ongevallen | 267.672 | 289.532 |
+| Fietsongevallen | 71.749 | 71.881 |
+| Ernstige fietsongevallen | 7.829 | 7.852 |
+| Aandeel fietsongevallen | 26,8 % | 24,8 % |
+| Aandeel ernstig (fiets) | 10,9 % | 10,9 % |
+| Fietsongevallen per 100.000 inwoners | 77,8 | 78,0 |
+
+- **Uitvoering:** `sluit_autosnelweg_uit` is weg. `pipeline.py` heeft nu `STANDAARD_UIT`,
+  `standaard_selectie` en `aantal_autosnelweg`, en `maak_gemeente_jaar` berekent `Gemeente_Jaar` per
+  selectie. `Gemeente_Jaar` staat dus niet meer in de parquet. In de app toont een banner of de
+  autosnelweg meegerekend is: een infoblok bij de standaard, een waarschuwing zodra ze meetelt.
+  `CLAUDE.md` is aangepast. De parquet is herbouwd (Fact_Accidents: 289.532 rijen).
+- **Controle:** de standaardselectie geeft exact dezelfde cijfers als voorheen. Met autosnelweg
+  (lege keuze of alle vier geselecteerd) kloppen alle kaarten met de ruwe data. Voor `Gemeente_Jaar`
+  klopt elke combinatie van gemeente en jaar met een onafhankelijke pandas-telling, met en zonder
+  autosnelweg, per jaar en per gewest. In de app zelf kloppen de kaarten bij elke wijziging.
+- **Aannames van Claude:**
+  - Een lege keuze bij Wegtype betekent alle wegtypes, dus mét autosnelweg. De banner waarschuwt dan.
+  - `Dim_Road_Type` en `Dim_NIS` zijn onveranderd (alle 581 gemeenten, alle 4 wegtypes).
+  - Datakwaliteit blijft over de volledige data gaan, nu inclusief de autosnelweg. Het aantal
+    gemeente-jaren zonder ongevallen blijft 14, ook met de autosnelweg erbij.
+  - `Gemeente_Jaar` toont enkel de gemeenten en jaren van de selectie (Jaar, Gewest, Provincie,
+    Gemeente). Een gemeente zonder ongevallen in de selectie krijgt 0.
+
+### Aannames van Claude bij stap 21 (nog niet bevestigd door Yun)
+- **Welke kaarten:** zes, afgeleid van de definities in `CLAUDE.md`: Ongevallen, Fietsongevallen,
+  Ernstige fietsongevallen, Aandeel fietsongevallen, Aandeel ernstig (fiets) en Fietsongevallen per
+  100.000 inwoners. Zonder filters: 267.672, 71.749, 7.829, 26,8 %, 10,9 % en 77,8.
+- **"Standaard = alles"** is een lege keuze met de tekst "Alles", geen volledig aangevinkte lijst.
+  Anders staan er 581 gemeenten als labels in één filter. Geen keuze betekent geen beperking (zoals
+  een slicer in Power BI).
+- **Trapsgewijs:** wijzig je Gewest of Provincie, dan gaan de filters eronder terug op "Alles". De
+  andere filters blijven staan.
+- **Aandelen met filters:** teller én noemer volgen de filters. Filter je op Weggebruiker = Fiets,
+  dan is het aandeel fietsongevallen dus 100 %.
+- **Fietsongevallengraad met filters:** fietsongevallen / bevolking × 100.000, gemiddeld per jaar.
+  De bevolking is de som over de gekozen jaren en gemeenten (alle gemeente-jaarcombinaties). Enkel
+  Jaar, Gewest, Provincie en Gemeente beïnvloeden de noemer. Een filter als Weer verandert dus
+  enkel de teller.
+- **Opties:** een filter toont enkel waarden die in `Fact_Accidents` voorkomen. (Bij Wegtype staat
+  sinds beslissing 22 ook "Autosnelweg".)
+- **Labels:** de filternamen heb ik vertaald (Weer, Wegdek, Licht, Kruispunt, Wegtype, Ernst van het
+  ongeval, Hindernis, Weggebruiker). De waarden in de filters zijn de labels uit de data, zoals
+  "met zwaargewonden" (kleine letter) en "onbekend".
+- **Datakwaliteit** volgt de filters niet: ze gaat over de volledige data.
+- **Parquet herbouwd** na de wijziging in `pipeline.py`; de inhoud is niet veranderd.
+- **Niet visueel gecontroleerd:** de logica en de cijfers zijn getest, maar ik heb de app niet in een
+  browser bekeken (kaartgrootte, afkapping van tekst).
+
+### Aannames van Claude bij het datamodel (nog niet bevestigd door Yun)
+- **Autosnelweg:** *vervangen door beslissing 22.* Eerst verdwenen de 21.860 rijen uit
+  `Fact_Accidents`; nu blijven ze erin en staan ze standaard uit in het filter Wegtype.
 - **Codes blijven tekst zoals in de bron.** De weggebruikerscodes zijn `'01'` … `'09'`, `'10'`,
   `'11'`, `'99'` (voorloopnul). (Fiets: zie beslissing 17.)
 - **`Gemeente_Jaar`:** één extra tabel (bevolking + tellingen) met Municipality, Province en Region

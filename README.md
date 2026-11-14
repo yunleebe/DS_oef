@@ -34,5 +34,5 @@ python pipeline.py
 ## Status
 
 De datavoorbereiding en het datamodel werken (dimensies, `Fact_Accidents`, `Fact_Population`,
-koppeling per gemeente en jaar). De app toont voorlopig enkel de sectie Datakwaliteit; de
-analyse en de kaart volgen.
+koppeling per gemeente en jaar). De app heeft kaarten met de belangrijkste cijfers, twaalf filters
+in de zijbalk en de sectie Datakwaliteit. De grafieken en de kaart volgen.

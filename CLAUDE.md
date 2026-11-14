@@ -24,7 +24,8 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
    boodschap. Commit nooit. Meld wanneer een stap werkt, zodat Yun kan committen.
 7. **Windows** is het standaardbesturingssysteem (PowerShell, `C:\Users\<jij>\...`).
 8. **Beslissingslogboek**: noteer elke beslissing van Yun in `beslissingslogboek.md`
-   (vraag, antwoord, reden).
+   (vraag, antwoord, reden). Achtergrond bij beslissingen en aannames staat daar; lees het bij
+   vragen over waarom iets zo gekozen is.
 
 ## Definities (ongevallendata)
 
@@ -37,12 +38,15 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
   "met zwaargewonden" (codes 1, 2, 3).
 - **Fietsongevallengraad**: fietsongevallen per 100.000 inwoners, met de bevolking van
   hetzelfde jaar.
-- **Aandeel fietsongevallen**: % fietsongevallen van alle ongevallen (zonder autosnelweg).
+- **Aandeel fietsongevallen**: % fietsongevallen van alle ongevallen (standaard zonder
+  autosnelweg, via het filter Wegtype).
 - **Aandeel ernstig (fiets)**: % ernstige ongevallen van alle fietsongevallen.
-- Er worden nooit rijen verwijderd, behalve de autosnelweg. Onbekend wegtype
-  (`CD_ROAD_TYPE` = 9) blijft in de data.
-- **Autosnelweg** (`CD_ROAD_TYPE` = 1) is uitgesloten voor de hele analyse, omdat fietsers daar
-  niet mogen rijden. Dit staat altijd zichtbaar bovenaan in de app.
+- Er worden nooit rijen verwijderd. Onbekend wegtype (`CD_ROAD_TYPE` = 9) en de autosnelweg
+  blijven in de data (`Fact_Accidents`).
+- **Autosnelweg** (`CD_ROAD_TYPE` = 1) staat **standaard uit** in het filter Wegtype, omdat
+  fietsers daar niet mogen rijden en ze het aandeel fietsongevallen zouden verlagen. De gebruiker
+  kan ze aanzetten om met en zonder autosnelweg te vergelijken. De app toont bovenaan altijd of
+  de autosnelweg wel of niet meegerekend is.
 
 ## Opschonen (ongevallendata)
 
@@ -53,6 +57,21 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
   (voorloopnullen blijven behouden).
 - Alle kolommen die op `_FR` eindigen worden verwijderd.
 
+## App
+
+- De taal van de app is Nederlands, met Belgische getalnotatie (86.300; 13,0 %).
+- Bovenaan staan de belangrijkste cijfers als kaarten.
+- **Filters** staan in de zijbalk (meerkeuze) en gelden voor alle visuals. Geen keuze = alles.
+  De filters zijn: Jaar; Gewest > Provincie > Gemeente; Weer; Wegdek; Licht; Kruispunt; Wegtype;
+  Ernst; Hindernis; Weggebruiker. Enige uitzondering op "standaard = alles": bij Wegtype staat
+  de autosnelweg standaard uit (de andere drie wegtypes zijn geselecteerd). Een lege keuze bij
+  Wegtype betekent alle wegtypes, dus mét autosnelweg.
+- **Trapsgewijs:** Gewest beperkt de keuzes bij Provincie, en Provincie beperkt de keuzes bij
+  Gemeente. Wijzig je Gewest of Provincie, dan gaan de filters eronder terug op "Alles".
+- **Weggebruiker:** een ongeval telt mee als Road User Type1 OF Road User Type2 geselecteerd is.
+- Een filter toont enkel waarden die in `Fact_Accidents` voorkomen.
+- De filterlogica en de berekeningen staan in `pipeline.py`, niet in `app.py`.
+
 ## Datamodel
 
 - Het datamodel bestaat uit `Dim_*`-tabellen, `Fact_Accidents` en `Fact_Population`.
@@ -62,6 +81,8 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
   met `pyproj` omgezet naar WGS84 (Latitude en Longitude).
 - **Nulwaarden**: een gemeente zonder ongevallen in een jaar krijgt 0 ongevallen, niet
   "ontbrekend".
+- **`Gemeente_Jaar`** (bevolking en tellingen per gemeente en jaar) wordt niet opgeslagen, maar per
+  selectie berekend (`maak_gemeente_jaar`), zodat de tellingen alle filters volgen, ook Wegtype.
 - **Gemeentenamen** in de app komen uit `Dim_NIS` (ongevallenbestand).
 - De app heeft een sectie **"Datakwaliteit"** met NIS-codes (per jaar) die maar in één van de
   twee bestanden voorkomen.

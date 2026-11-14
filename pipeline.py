@@ -21,8 +21,10 @@ DATAKWALITEIT_NIS = "Datakwaliteit_NIS"
 CONTROLE_ONGEVALLEN = "Controle_Ongevallen"
 
 BRUSSEL = "Brussels Hoofdstedelijk Gewest"
-AUTOSNELWEG_ID = "1"
 AUTOSNELWEG_LABEL = "Autosnelweg"
+# Waarden die in de zijbalk standaard niet geselecteerd zijn (ze blijven wel in de data).
+# Fietsers mogen niet op de autosnelweg; ze zouden het aandeel fietsongevallen verlagen.
+STANDAARD_UIT = {"Road Type": [AUTOSNELWEG_LABEL]}
 # Enkel Road User Type ID 03 telt als fiets. De data maakt geen onderscheid tussen een gewone fiets
 # en een e-bike; bromfiets (06) en motorfiets (07) hebben andere snelheden en wegen en tellen niet.
 FIETS_ID = "03"
@@ -85,6 +87,32 @@ FACT_ACCIDENTS_KOLOMMEN = {
     "CD_OBSTACLES": "Obstacle ID",
     "CD_ROAD_USR_TYPE1": "Road User Type1 ID",
     "CD_ROAD_USR_TYPE2": "Road User Type2 ID",
+}
+
+
+# Filters in de zijbalk. De geografische filters beperken elkaar (Region > Province > Municipality).
+GEOGRAFIE_FILTERS = ["Region", "Province", "Municipality"]
+# Filternaam -> (dimensie, labelkolom, ID-kolom in de dimensie, ID-kolommen in Fact_Accidents).
+FILTER_DIMENSIES = {
+    "Weather": ("Dim_Weather", "Weather", "Weather ID", ["Weather ID"]),
+    "Road Condition": (
+        "Dim_Road_Condition", "Road Condition", "Road Condition ID", ["Road Condition ID"]
+    ),
+    "Light Condition": (
+        "Dim_Light_Condition", "Light Condition", "Light Condition ID", ["Light Condition ID"]
+    ),
+    "Crossway": ("Dim_Crossway", "Crossway", "Crossway ID", ["Crossway ID"]),
+    "Road Type": ("Dim_Road_Type", "Road Type", "Road Type ID", ["Road Type ID"]),
+    "Class Accidents": (
+        "Dim_Class_Accidents", "Class Accidents", "Class Accidents ID", ["Class Accidents ID"]
+    ),
+    "Obstacle": ("Dim_Obstacles", "Obstacle", "Obstacle ID", ["Obstacle ID"]),
+    "Road User Type": (
+        "Dim_Road_User",
+        "Road User Type",
+        "Road User Type ID",
+        ["Road User Type1 ID", "Road User Type2 ID"],
+    ),
 }
 
 
@@ -280,16 +308,12 @@ def maak_dimensies(ongevallen: pd.DataFrame) -> dict[str, pd.DataFrame]:
     return dimensies
 
 
-def sluit_autosnelweg_uit(ongevallen: pd.DataFrame) -> pd.DataFrame:
-    """Verwijder de ongevallen op de autosnelweg (de enige rijen die we weglaten)."""
-    labels = ongevallen.loc[ongevallen["CD_ROAD_TYPE"] == AUTOSNELWEG_ID, "CD_ROAD_TYPE_NL"]
-    if not (labels == AUTOSNELWEG_LABEL).all():
-        raise ValueError(f"Road type {AUTOSNELWEG_ID} is niet overal '{AUTOSNELWEG_LABEL}'")
-    return ongevallen[ongevallen["CD_ROAD_TYPE"] != AUTOSNELWEG_ID].reset_index(drop=True)
-
-
 def maak_fact_accidents(ongevallen: pd.DataFrame) -> pd.DataFrame:
-    """Fact_Accidents: één rij per ongeval, met ID's die verwijzen naar de dimensies."""
+    """Fact_Accidents: één rij per ongeval, met ID's die verwijzen naar de dimensies.
+
+    Alle ongevallen blijven erin, ook die op de autosnelweg: die worden via het filter
+    Road Type standaard uitgezet (zie STANDAARD_UIT).
+    """
     return ongevallen[list(FACT_ACCIDENTS_KOLOMMEN)].rename(columns=FACT_ACCIDENTS_KOLOMMEN)
 
 
@@ -304,6 +328,15 @@ def _is_fietsongeval(fact_accidents: pd.DataFrame, dim_road_user: pd.DataFrame) 
     return (fact_accidents["Road User Type1 ID"] == FIETS_ID) | (
         fact_accidents["Road User Type2 ID"] == FIETS_ID
     )
+
+
+def _is_ernstig(fact_accidents: pd.DataFrame, dim_class_accidents: pd.DataFrame) -> pd.Series:
+    """True bij 'Met doden', 'dodelijk gewonden' of 'met zwaargewonden'."""
+    ernstige_ids = dim_class_accidents.loc[
+        dim_class_accidents["Class Accidents"].str.lower().isin(ERNSTIGE_KLASSEN),
+        "Class Accidents ID",
+    ]
+    return fact_accidents["Class Accidents ID"].isin(ernstige_ids)
 
 
 def filter_fietsongevallen(
@@ -322,12 +355,8 @@ def tel_ongevallen_per_gemeente_jaar(
 
     Gemeenten zonder ongeval in een jaar staan hier niet in; koppel_bevolking maakt er 0 van.
     """
-    ernstige_ids = dim_class_accidents.loc[
-        dim_class_accidents["Class Accidents"].str.lower().isin(ERNSTIGE_KLASSEN),
-        "Class Accidents ID",
-    ]
     fiets = _is_fietsongeval(fact_accidents, dim_road_user)
-    ernstig = fact_accidents["Class Accidents ID"].isin(ernstige_ids)
+    ernstig = _is_ernstig(fact_accidents, dim_class_accidents)
     return (
         fact_accidents.assign(Bike_Accidents=fiets, Serious_Bike_Accidents=fiets & ernstig)
         .groupby(["NIS", "Year"], as_index=False)
@@ -381,29 +410,155 @@ def datakwaliteit_nis(
     )
 
 
+def selecteer_gemeenten(dim_nis: pd.DataFrame, keuzes: dict[str, list]) -> pd.DataFrame:
+    """De gemeenten (rijen van Dim_NIS) die voldoen aan de gekozen Region, Province en Municipality.
+
+    Een lege of ontbrekende keuze betekent "alles". De drie niveaus beperken elkaar.
+    """
+    gemeenten = dim_nis
+    for niveau in GEOGRAFIE_FILTERS:
+        if keuzes.get(niveau):
+            gemeenten = gemeenten[gemeenten[niveau].isin(keuzes[niveau])]
+    return gemeenten
+
+
+def filter_opties(tabellen: dict[str, pd.DataFrame], keuzes: dict[str, list]) -> dict[str, list]:
+    """De keuzes die elk filter aanbiedt, gegeven de al gemaakte keuzes.
+
+    Region beperkt Province, en Region en Province beperken samen Municipality. Bij de andere
+    filters staan enkel waarden die in Fact_Accidents voorkomen (bij Road Type dus ook de autosnelweg).
+    """
+    dim_nis = tabellen["Dim_NIS"]
+    in_regio = selecteer_gemeenten(dim_nis, {"Region": keuzes.get("Region")})
+    in_provincie = selecteer_gemeenten(in_regio, {"Province": keuzes.get("Province")})
+    opties = {
+        "Year": sorted(tabellen["Fact_Accidents"]["Year"].unique().tolist()),
+        "Region": sorted(dim_nis["Region"].unique()),
+        "Province": sorted(in_regio["Province"].unique()),
+        "Municipality": sorted(in_provincie["Municipality"].unique()),
+    }
+    fact = tabellen["Fact_Accidents"]
+    for naam, (dimensie, label, id_kolom, fact_kolommen) in FILTER_DIMENSIES.items():
+        voorkomend = set().union(*(fact[k].unique() for k in fact_kolommen))
+        dim = tabellen[dimensie]
+        opties[naam] = dim.loc[dim[id_kolom].isin(voorkomend), label].tolist()
+    return opties
+
+
+def filter_ongevallen(
+    tabellen: dict[str, pd.DataFrame], keuzes: dict[str, list]
+) -> pd.DataFrame:
+    """Fact_Accidents beperkt tot de gekozen waarden. Een lege keuze betekent "alles".
+
+    Alle filters gelden samen (EN). Binnen één filter volstaat één geselecteerde waarde (OF). Bij
+    Road User Type telt een ongeval mee als Road User Type1 OF Road User Type2 geselecteerd is.
+    """
+    fact = tabellen["Fact_Accidents"]
+    masker = pd.Series(True, index=fact.index)
+    if keuzes.get("Year"):
+        masker &= fact["Year"].isin(keuzes["Year"])
+    if any(keuzes.get(niveau) for niveau in GEOGRAFIE_FILTERS):
+        gemeenten = selecteer_gemeenten(tabellen["Dim_NIS"], keuzes)
+        masker &= fact["NIS"].isin(gemeenten["NIS"])
+    for naam, (dimensie, label, id_kolom, fact_kolommen) in FILTER_DIMENSIES.items():
+        if keuzes.get(naam):
+            dim = tabellen[dimensie]
+            ids = dim.loc[dim[label].isin(keuzes[naam]), id_kolom]
+            masker &= pd.concat([fact[k].isin(ids) for k in fact_kolommen], axis=1).any(axis=1)
+    return fact[masker]
+
+
+def standaard_selectie(naam: str, opties: list) -> list:
+    """De waarden die een filter standaard geselecteerd heeft.
+
+    Meestal niets (= alles). Bij een filter in STANDAARD_UIT zijn dat alle opties behalve de
+    standaard uitgezette (bij Road Type dus alles behalve de autosnelweg).
+    """
+    if naam not in STANDAARD_UIT:
+        return []
+    return [optie for optie in opties if optie not in STANDAARD_UIT[naam]]
+
+
+def _selecteer_bevolking(tabellen: dict[str, pd.DataFrame], keuzes: dict[str, list]) -> pd.DataFrame:
+    """Fact_Population voor de gekozen jaren en gemeenten (Year, Region, Province, Municipality)."""
+    bevolking = tabellen["Fact_Population"]
+    if keuzes.get("Year"):
+        bevolking = bevolking[bevolking["Year"].isin(keuzes["Year"])]
+    gemeenten = selecteer_gemeenten(tabellen["Dim_NIS"], keuzes)
+    return bevolking[bevolking["NIS"].isin(gemeenten["NIS"])]
+
+
+def maak_gemeente_jaar(
+    gefilterd: pd.DataFrame, tabellen: dict[str, pd.DataFrame], keuzes: dict[str, list]
+) -> pd.DataFrame:
+    """Eén rij per gemeente en jaar: bevolking en tellingen van de gefilterde ongevallen.
+
+    De tellingen volgen alle filters (dus ook Road Type: zonder autosnelweg zijn het de cijfers
+    zonder autosnelweg). De rijen zijn de gemeenten en jaren van de selectie; een gemeente zonder
+    ongevallen in een jaar krijgt 0.
+    """
+    tellingen = tel_ongevallen_per_gemeente_jaar(
+        gefilterd, tabellen["Dim_Road_User"], tabellen["Dim_Class_Accidents"]
+    )
+    return koppel_bevolking(_selecteer_bevolking(tabellen, keuzes), tellingen, tabellen["Dim_NIS"])
+
+
+def aantal_autosnelweg(tabellen: dict[str, pd.DataFrame]) -> int:
+    """Aantal ongevallen op de autosnelweg in Fact_Accidents (alle jaren en gemeenten)."""
+    dim = tabellen["Dim_Road_Type"]
+    ids = dim.loc[dim["Road Type"] == AUTOSNELWEG_LABEL, "Road Type ID"]
+    return int(tabellen["Fact_Accidents"]["Road Type ID"].isin(ids).sum())
+
+
+def bereken_kerncijfers(
+    gefilterd: pd.DataFrame, tabellen: dict[str, pd.DataFrame], keuzes: dict[str, list]
+) -> dict:
+    """De cijfers voor de kaarten bovenaan, voor de gefilterde ongevallen.
+
+    - Fietsongevallengraad: fietsongevallen per 100.000 inwoners per jaar. De noemer is de
+      bevolking (Fact_Population) van de gekozen jaren en gemeenten, opgeteld over alle
+      combinaties van gemeente en jaar; zonder keuze telt alles mee. Enkel Year, Region,
+      Province en Municipality beïnvloeden de noemer.
+    - Een aandeel is None als de noemer 0 is.
+    """
+    fiets = _is_fietsongeval(gefilterd, tabellen["Dim_Road_User"])
+    ernstig = _is_ernstig(gefilterd, tabellen["Dim_Class_Accidents"])
+    bevolking = _selecteer_bevolking(tabellen, keuzes)
+
+    ongevallen, fietsongevallen = len(gefilterd), int(fiets.sum())
+    ernstige_fietsongevallen = int((fiets & ernstig).sum())
+    inwonerjaren = int(bevolking["Total"].sum())
+    return {
+        "Ongevallen": ongevallen,
+        "Fietsongevallen": fietsongevallen,
+        "Ernstige fietsongevallen": ernstige_fietsongevallen,
+        "Aandeel fietsongevallen": fietsongevallen / ongevallen * 100 if ongevallen else None,
+        "Aandeel ernstig (fiets)": (
+            ernstige_fietsongevallen / fietsongevallen * 100 if fietsongevallen else None
+        ),
+        "Fietsongevallengraad": fietsongevallen / inwonerjaren * 100_000 if inwonerjaren else None,
+    }
+
+
 def maak_datamodel() -> tuple[dict[str, pd.DataFrame], dict]:
     """Alle stappen na elkaar. Geeft (tabellen, controles) terug.
 
-    De dimensies worden gemaakt vóór de autosnelweg wegvalt, zodat ze volledig zijn
-    (alle 581 gemeenten). Fact_Accidents bevat geen autosnelwegongevallen.
+    Er gaan geen ongevallen verloren: Fact_Accidents bevat ook de autosnelwegongevallen.
+    Gemeente_Jaar zit hier niet in: die tabel volgt de filters en wordt per selectie berekend
+    (maak_gemeente_jaar).
     """
     ongevallen = zet_coordinaten_om(maak_schoon(laad_ongevallen()))
     dimensies = maak_dimensies(ongevallen)
-    fact_accidents = maak_fact_accidents(sluit_autosnelweg_uit(ongevallen))
+    fact_accidents = maak_fact_accidents(ongevallen)
     fact_population, controle_bevolking = maak_fact_population()
 
-    tellingen = tel_ongevallen_per_gemeente_jaar(
-        fact_accidents, dimensies["Dim_Road_User"], dimensies["Dim_Class_Accidents"]
-    )
     tabellen = {
         **dimensies,
         "Fact_Accidents": fact_accidents,
         "Fact_Population": fact_population,
-        "Gemeente_Jaar": koppel_bevolking(fact_population, tellingen, dimensies["Dim_NIS"]),
     }
     controles = {
         "Ongevallen ingelezen": len(ongevallen),
-        "Autosnelweg uitgesloten": len(ongevallen) - len(fact_accidents),
         "Controle bevolking": controle_bevolking,
         "Datakwaliteit NIS": datakwaliteit_nis(fact_accidents, fact_population, dimensies["Dim_NIS"]),
     }
@@ -419,9 +574,7 @@ def schrijf_parquet(
         tabel.to_parquet(map / f"{naam}.parquet", index=False)
     controles["Controle bevolking"].to_parquet(map / f"{CONTROLE_BEVOLKING}.parquet")
     controles["Datakwaliteit NIS"].to_parquet(map / f"{DATAKWALITEIT_NIS}.parquet", index=False)
-    aantallen = pd.DataFrame(
-        {k: [controles[k]] for k in ["Ongevallen ingelezen", "Autosnelweg uitgesloten"]}
-    )
+    aantallen = pd.DataFrame({"Ongevallen ingelezen": [controles["Ongevallen ingelezen"]]})
     aantallen.to_parquet(map / f"{CONTROLE_ONGEVALLEN}.parquet", index=False)
 
 
@@ -431,7 +584,6 @@ def lees_parquet(map: Path = PARQUET_DIR) -> tuple[dict[str, pd.DataFrame], dict
     aantallen = bestanden.pop(CONTROLE_ONGEVALLEN).iloc[0]
     controles = {
         "Ongevallen ingelezen": int(aantallen["Ongevallen ingelezen"]),
-        "Autosnelweg uitgesloten": int(aantallen["Autosnelweg uitgesloten"]),
         "Controle bevolking": bestanden.pop(CONTROLE_BEVOLKING),
         "Datakwaliteit NIS": bestanden.pop(DATAKWALITEIT_NIS),
     }
