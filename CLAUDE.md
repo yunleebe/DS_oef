@@ -47,3 +47,15 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
 - Alle kolommen die met `CD_` beginnen zijn ID-kolommen en blijven tekst; `CD_NIS` ook
   (voorloopnullen blijven behouden).
 - Alle kolommen die op `_FR` eindigen worden verwijderd.
+
+## Datamodel
+
+- Het datamodel bestaat uit `Dim_*`-tabellen, `Fact_Accidents` en `Fact_Population`.
+  Tabel- en kolomnamen volgen de lijst in `beslissingslogboek.md` (beslissing 13 tot 15).
+- **Coördinaten**: lege waarden en punten buiten België tellen als "geen coördinaten". Die rijen
+  blijven in de analyse.
+- **Nulwaarden**: een gemeente zonder ongevallen in een jaar krijgt 0 ongevallen, niet
+  "ontbrekend".
+- **Gemeentenamen** in de app komen uit `Dim_NIS` (ongevallenbestand).
+- De app heeft een sectie **"Datakwaliteit"** met NIS-codes (per jaar) die maar in één van de
+  twee bestanden voorkomen.
