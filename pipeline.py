@@ -16,6 +16,9 @@ BEVOLKING_BESTAND = DATA_DIR / "Bevolking_per_gemeente_2017-2024.xlsx"
 BRUSSEL = "Brussels Hoofdstedelijk Gewest"
 AUTOSNELWEG_ID = "1"
 AUTOSNELWEG_LABEL = "Autosnelweg"
+# Enkel Road User Type ID 03 telt als fiets. De data maakt geen onderscheid tussen een gewone fiets
+# en een e-bike; bromfiets (06) en motorfiets (07) hebben andere snelheden en wegen en tellen niet.
+FIETS_ID = "03"
 FIETS_LABEL = "Fiets"
 ERNSTIGE_KLASSEN = {"met doden", "dodelijk gewonden", "met zwaargewonden"}
 
@@ -252,6 +255,11 @@ def maak_dim_road_user(ongevallen: pd.DataFrame) -> pd.DataFrame:
         for bron in ROAD_USER_BRONNEN
     ]
     dimensie = pd.concat(delen).drop_duplicates()
+    # Eerste letter een hoofdletter ("personenauto" -> "Personenauto"); de rest blijft zoals het is.
+    dimensie["Road User Type"] = dimensie["Road User Type"].str[:1].str.upper() + dimensie[
+        "Road User Type"
+    ].str[1:]
+    dimensie = dimensie.drop_duplicates()
     conflicten = dimensie[dimensie.duplicated("Road User Type ID", keep=False)]
     if not conflicten.empty:
         raise ValueError(f"Eén code met meerdere labels in Dim_Road_User:\n{conflicten}")
@@ -279,11 +287,16 @@ def maak_fact_accidents(ongevallen: pd.DataFrame) -> pd.DataFrame:
 
 
 def _is_fietsongeval(fact_accidents: pd.DataFrame, dim_road_user: pd.DataFrame) -> pd.Series:
-    """True als weggebruiker 1 of 2 'Fiets' is (een ongeval telt één keer)."""
-    fiets_ids = dim_road_user.loc[dim_road_user["Road User Type"] == FIETS_LABEL, "Road User Type ID"]
-    return fact_accidents["Road User Type1 ID"].isin(fiets_ids) | fact_accidents[
-        "Road User Type2 ID"
-    ].isin(fiets_ids)
+    """True als weggebruiker 1 of 2 Road User Type ID 03 ('Fiets') is (een ongeval telt één keer).
+
+    Gooit een ValueError als ID 03 in Dim_Road_User niet het label 'Fiets' heeft.
+    """
+    label = dim_road_user.loc[dim_road_user["Road User Type ID"] == FIETS_ID, "Road User Type"]
+    if list(label) != [FIETS_LABEL]:
+        raise ValueError(f"Road User Type ID {FIETS_ID} is niet '{FIETS_LABEL}': {list(label)}")
+    return (fact_accidents["Road User Type1 ID"] == FIETS_ID) | (
+        fact_accidents["Road User Type2 ID"] == FIETS_ID
+    )
 
 
 def filter_fietsongevallen(

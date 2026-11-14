@@ -26,8 +26,10 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
 ## Definities (ongevallendata)
 
 - Een rij is een ongeval. De dataset bevat enkel ongevallen met minstens één dode of gewonde.
-- **Fietsongeval**: `CD_ROAD_USR_TYPE1` of `CD_ROAD_USR_TYPE2` is "Fiets" (code 3). Elk ongeval
-  telt één keer, ook als beide partijen een fiets zijn.
+- **Fietsongeval**: `CD_ROAD_USR_TYPE1` of `CD_ROAD_USR_TYPE2` is `03` ("Fiets"). Elk ongeval
+  telt één keer, ook als beide partijen een fiets zijn. Bromfiets (06) en motorfiets (07) tellen
+  niet mee: ze hebben andere snelheden en wegen. De data maakt geen onderscheid tussen een gewone
+  fiets en een e-bike.
 - **Ernstig ongeval**: `CD_CLASS_ACCIDENTS` is "Met doden", "dodelijk gewonden" of
   "met zwaargewonden" (codes 1, 2, 3).
 - **Fietsongevallengraad**: fietsongevallen per 100.000 inwoners, met de bevolking van
@@ -53,7 +55,8 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
 - Het datamodel bestaat uit `Dim_*`-tabellen, `Fact_Accidents` en `Fact_Population`.
   Tabel- en kolomnamen volgen de lijst in `beslissingslogboek.md` (beslissing 13 tot 15).
 - **Coördinaten**: lege waarden en punten buiten België tellen als "geen coördinaten". Die rijen
-  blijven in de analyse.
+  blijven in de analyse. De bron-coördinaten zijn Belgisch Lambert 72 (EPSG:31370) en worden
+  met `pyproj` omgezet naar WGS84 (Latitude en Longitude).
 - **Nulwaarden**: een gemeente zonder ongevallen in een jaar krijgt 0 ongevallen, niet
   "ontbrekend".
 - **Gemeentenamen** in de app komen uit `Dim_NIS` (ongevallenbestand).

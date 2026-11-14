@@ -132,6 +132,7 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
   is geen exacte landsgrens.
 - **Resultaat:** 2 rijen hadden onmogelijke waarden (~10^16) en tellen als "geen coördinaten".
   `pyproj` is nodig voor de omzetting.
+- **Bevestigd door Yun:** die 2 rijen vallen onder "geen coördinaten". Ze blijven in de analyse.
 
 ### 16. Hoe koppelen we bevolking en ongevallen?
 - **Antwoord:** koppel op NIS + Year. Meld NIS-codes (per jaar) die in één bestand voorkomen en niet
@@ -141,12 +142,32 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
 - **Resultaat:** 0 codes alleen in de ongevallen. 14 combinaties van gemeente en jaar staan enkel
   in de bevolking (bv. Herstappe, Mesen): die gemeenten hadden dat jaar geen ongevallen.
 
+### 17. Wat telt als "fiets", en hoe schrijven we de labels van Dim_Road_User?
+- **Antwoord:** enkel Road User Type ID `03` ("Fiets") telt als fiets. Labels in `Dim_Road_User`
+  beginnen met een hoofdletter (bv. "personenauto" wordt "Personenauto").
+- **Reden:** de data maakt geen onderscheid tussen een gewone fiets en een e-bike. Bromfiets en
+  motorfiets hebben andere snelheden en andere wegen en zouden de resultaten over fietsveiligheid
+  vertekenen.
+- **Uitvoering:** `pipeline.py` gebruikt nu ID `03` (niet langer het label) en gooit een fout als dat
+  ID niet "Fiets" heet. Alleen de eerste letter wordt een hoofdletter; de rest blijft zoals het is.
+  Het aantal fietsongevallen is ongewijzigd: 71.749 (7.829 ernstig).
+- **Vervangt** de aanname hieronder dat "Fiets" via het label gezocht wordt.
+
+### 18. Fietsers op de autosnelweg: 132 ongevallen
+- **Antwoord:** akkoord dat deze ongevallen uitgesloten blijven. Het lijken fouten in de registratie.
+- **Reden:** fietsers mogen niet op de autosnelweg. In 27 van de 132 ongevallen zijn beide partijen
+  "Fiets", wat daar onmogelijk is.
+- **Controle door Claude:** 132 ongevallen op de autosnelweg hebben minstens één fiets: 55 enkel
+  bij TYPE1, 50 enkel bij TYPE2 en 27 bij beide. De 27 bestaan uit 1 "dodelijk gewonden",
+  3 "met zwaargewonden" en 23 "met lichtgewonden". Per jaar: 13, 11, 17, 10, 9, 27, 19 en 26
+  (2017 tot 2024). Totaal fietsongevallen over alle wegtypes: 71.881; zonder autosnelweg: 71.749.
+
 ### Aannames van Claude bij deze stap (nog niet bevestigd door Yun)
 - **Autosnelweg:** de rijen verdwijnen in `Fact_Accidents` (21.860 van 289.532). De dimensies
   worden gebouwd vóór die uitsluiting, dus `Dim_Road_Type` bevat nog "Autosnelweg" en `Dim_NIS`
   heeft alle 581 gemeenten.
 - **Codes blijven tekst zoals in de bron.** De weggebruikerscodes zijn `'01'` … `'09'`, `'10'`,
-  `'11'`, `'99'` (voorloopnul). "Fiets" zoek ik op via het label, niet via de code.
+  `'11'`, `'99'` (voorloopnul). (Fiets: zie beslissing 17.)
 - **`Gemeente_Jaar`:** één extra tabel (bevolking + tellingen) met Municipality, Province en Region
   uit `Dim_NIS`, Total, Accidents, Bike_Accidents en Serious_Bike_Accidents. De drie tellingen
   volgen uit de definities in `CLAUDE.md`.
