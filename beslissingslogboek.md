@@ -257,6 +257,29 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
   onveranderd (vergeleken met de vorige parquet). De ernstklassen worden zonder rekening te houden
   met hoofdletters herkend, dus de kaarten veranderen niet (opnieuw getest).
 
+### 24. Opbouw van de visuals (tabbladen, trend, kaart, ranglijsten)
+- **Vraag:** hoe tonen we de centrale vraag (talrijkst, ernstigst, veranderd sinds 2017)?
+- **Antwoord:** zes tabbladen: Trend, Kaart, Waar, Wanneer, Omstandigheden, Tegenpartij. Filters
+  blijven in de zijbalk. Grafieken met `plotly==6.9.0` (staat in `syntra-ds`).
+- **Trend (onderdeel 0):** twee aparte lijngrafieken (fietsongevallengraad en aandeel
+  fietsongevallen), geen dubbele as. 2020–2021 is gearceerd als corona.
+- **Trend per gemeente/provincie:** helling van de rechte lijn door de jaarlijkse
+  fietsongevallengraad, uitgedrukt in % van het gemiddelde per jaar. Boven +2 % per jaar =
+  stijgend, onder −2 % = dalend, ertussen stabiel; met sparkline. Reden: de eerdere vergelijking
+  2017–19 met 2022–24 was te moeilijk uit te leggen.
+- **Minimum 30 fietsongevallen** (over de gekozen jaren samen) voor rangschikkingen op een
+  verhouding (graad, aandelen, trend). Een invoervak laat de gebruiker het aanpassen. Bij
+  sorteren op aantal geldt geen drempel.
+- **Weer:** categorieën onder 1 % worden "Overige"; "Onbekend" blijft apart.
+- **Kaart:** standaard enkel fietsongevallen, met schakelaar naar alle ongevallen. Standaard een
+  concentratiekaart; afzonderlijke punten zijn begrensd tot 20.000 (met melding). Geen
+  gemeentegrenzenkaart (mogelijk later).
+- **Heatmap:** enkel de top 20 gemeenten, volgens de sortering in "Waar".
+- **Bij elke grafiek** staat één zin over de maat. De fietsongevallengraad is per inwoner; er zijn
+  geen gegevens over hoeveel er gefietst wordt.
+- **Stap 1 gebouwd:** tabbladen en de trendgrafieken (`maak_jaartrend` in `pipeline.py`),
+  gecontroleerd met een onafhankelijke pandas-telling.
+
 ### Aannames van Claude bij stap 21 (nog niet bevestigd door Yun)
 - **Welke kaarten:** zes, afgeleid van de definities in `CLAUDE.md`: Ongevallen, Fietsongevallen,
   Ernstige fietsongevallen, Aandeel fietsongevallen, Aandeel ernstig (fiets) en Fietsongevallen per

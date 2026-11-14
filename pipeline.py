@@ -512,6 +512,18 @@ def maak_gemeente_jaar(
     return koppel_bevolking(_selecteer_bevolking(tabellen, keuzes), tellingen, tabellen["Dim_NIS"])
 
 
+def maak_jaartrend(gemeente_jaar: pd.DataFrame) -> pd.DataFrame:
+    """Per jaar: fietsongevallen, fietsongevallengraad (per 100.000 inwoners) en aandeel
+    fietsongevallen, gebaseerd op `maak_gemeente_jaar` (dus alle filters gelden)."""
+    per_jaar = gemeente_jaar.groupby("Year", as_index=False)[
+        ["Total", "Accidents", "Bike_Accidents", "Serious_Bike_Accidents"]
+    ].sum()
+    per_jaar["Bike_Rate"] = per_jaar["Bike_Accidents"] / per_jaar["Total"] * 100_000
+    per_jaar["Bike_Share"] = per_jaar["Bike_Accidents"] / per_jaar["Accidents"] * 100
+    per_jaar["Serious_Share"] = per_jaar["Serious_Bike_Accidents"] / per_jaar["Bike_Accidents"] * 100
+    return per_jaar
+
+
 def aantal_autosnelweg(tabellen: dict[str, pd.DataFrame]) -> int:
     """Aantal ongevallen op de autosnelweg in Fact_Accidents (alle jaren en gemeenten)."""
     dim = tabellen["Dim_Road_Type"]
