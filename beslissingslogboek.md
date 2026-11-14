@@ -180,6 +180,11 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
   de app ze automatisch (alleen als de Excel-bestanden er zijn). Zo werk je nooit met verouderde
   data na een aanpassing. Na zo'n herbouw moet je de gewijzigde parquet opnieuw committen.
 
+### 20. Tests voor de opdracht
+- **Antwoord:** tests worden overgeslagen. 
+- **Reden:** Yun heeft tests niet geleerd in de opleiding. De opdracht noemt tests wel bij de
+  GitHub-repo; dat verschil blijft dus bestaan.
+
 ### Aannames van Claude bij deze stap (nog niet bevestigd door Yun)
 - **Autosnelweg:** de rijen verdwijnen in `Fact_Accidents` (21.860 van 289.532). De dimensies
   worden gebouwd vóór die uitsluiting, dus `Dim_Road_Type` bevat nog "Autosnelweg" en `Dim_NIS`

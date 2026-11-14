@@ -8,13 +8,16 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
 1. **Structuur**: `app.py` is enkel de interface. De datavoorbereiding staat in `pipeline.py`,
    met aparte, benoemde functies (één per stap) en **geen Streamlit-imports**.
 2. **`requirements.txt`** bevat enkel wat de app importeert, met versienummers
-   (nu: streamlit, pandas).
+   (nu: streamlit, pandas, openpyxl, pyproj, pyarrow).
 3. **Nieuw package nodig?** Staat het niet in `syntra-ds`: vraag het EERST aan Yun, met reden en
    alternatief, en zet het niet in `requirements.txt`. Installeer niets zonder OK.
    Staat het wel in `syntra-ds` en heeft de app het nodig, dan mag het zonder vragen in
    `requirements.txt` (met versienummer).
-4. **Data** staat in `data/`, **geheimen** in `.env`. `data/`, `.env`, `__pycache__/` en `.venv/`
-   staan in `.gitignore`.
+4. **Data** staat in `data/`, **geheimen** in `.env`. `data/` (de Excel-brondata), `.env`,
+   `__pycache__/` en `.venv/` staan in `.gitignore`, met één uitzondering: `data/parquet/` (het
+   verwerkte datamodel) staat wél in git, omdat de publieke Streamlit-app het nodig heeft. Na een
+   wijziging aan `pipeline.py` of de data herbouw je de parquet (`python pipeline.py`) en commit je
+   die opnieuw.
 5. **Omgeving**: de conda-omgeving `syntra-ds` is de standaard. Zolang de packages uit
    `requirements.txt` daarin staan, mag je ze gebruiken. Maak geen eigen `.venv`.
 6. **Git**: de map is al een repo; geen `git init`. Yun doet de commits zelf, met een eigen
