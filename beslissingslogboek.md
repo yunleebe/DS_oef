@@ -101,3 +101,55 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
 - **Reden:** `syntra-ds` is de standaardomgeving; wat daarin staat, is al goedgekeurd.
 - **Uitvoering:** `openpyxl==3.1.5` toegevoegd (versie gecontroleerd in `syntra-ds`).
   Pandas heeft het nodig om `.xlsx` te lezen.
+
+## 2026-11-14: Datamodel (dimensies, feiten en koppeling)
+
+### 13. Welke dimensietabellen maken we?
+- **Antwoord:** unieke rijen (ID + label, hernoemd) voor `Dim_NIS` (NIS, Region, Province,
+  Municipality), `Dim_Crossway`, `Dim_Weather`, `Dim_Road_Condition`, `Dim_Light_Condition`,
+  `Dim_Road_Type`, `Dim_Class_Accidents` en `Dim_Obstacles`. `Dim_Road_User` is één gedeelde
+  dimensie voor `CD_ROAD_USR_TYPE1` en `TYPE2` samen. Controleer dat elke code in beide kolommen
+  hetzelfde label heeft en meld elk conflict.
+- **Reden:** geen reden opgegeven.
+- **Resultaat:** geen enkel conflict. Alle dimensies hebben één label per ID. `Dim_Road_User` heeft
+  12 rijen; codes 10 en 11 komen enkel in `TYPE2` voor en zijn geen weggebruikers ("één
+  bestuurder, geen hindernis" en "een weggebruiker tegen een hindernis").
+
+### 14. Hoe ziet `Fact_Accidents` eruit?
+- **Antwoord:** 15 kolommen: Year, Month, Hour, NIS, Latitude, Longitude, Weather ID,
+  Road Condition ID, Light Condition ID, Crossway ID, Road Type ID, Class Accidents ID,
+  Obstacle ID, Road User Type1 ID en Road User Type2 ID, met verwijzingen naar de dimensies.
+- **Reden:** geen reden opgegeven.
+- **Resultaat:** elk ID in de fact bestaat in zijn dimensie (0 ontbrekende verwijzingen).
+
+### 15. Coördinaten
+- **Antwoord:** zet `MS_X_COORD` en `MS_Y_COORD` om naar Latitude en Longitude. Lege waarden en
+  punten buiten België tellen als "geen coördinaten".
+- **Reden:** de kaart heeft lat/lon nodig.
+- **Aanname van Claude:** het stelsel van de bron is Belgisch Lambert 72 (EPSG:31370). Dat staat
+  niet in `Variabelenlijst.pdf`. Ik controleerde het: Antwerpen, Genk, Luik en Aarlen landen op de
+  juiste plek. "Binnen België" = omhullende rechthoek lat 49,49 tot 51,51 en lon 2,54 tot 6,41; dat
+  is geen exacte landsgrens.
+- **Resultaat:** 2 rijen hadden onmogelijke waarden (~10^16) en tellen als "geen coördinaten".
+  `pyproj` is nodig voor de omzetting.
+
+### 16. Hoe koppelen we bevolking en ongevallen?
+- **Antwoord:** koppel op NIS + Year. Meld NIS-codes (per jaar) die in één bestand voorkomen en niet
+  in het andere, in een sectie "Datakwaliteit". Een gemeente met nul ongevallen in een jaar krijgt 0
+  (niet "ontbrekend"). Gebruik in de app de gemeentenamen uit `Dim_NIS`.
+- **Reden:** geen reden opgegeven.
+- **Resultaat:** 0 codes alleen in de ongevallen. 14 combinaties van gemeente en jaar staan enkel
+  in de bevolking (bv. Herstappe, Mesen): die gemeenten hadden dat jaar geen ongevallen.
+
+### Aannames van Claude bij deze stap (nog niet bevestigd door Yun)
+- **Autosnelweg:** de rijen verdwijnen in `Fact_Accidents` (21.860 van 289.532). De dimensies
+  worden gebouwd vóór die uitsluiting, dus `Dim_Road_Type` bevat nog "Autosnelweg" en `Dim_NIS`
+  heeft alle 581 gemeenten.
+- **Codes blijven tekst zoals in de bron.** De weggebruikerscodes zijn `'01'` … `'09'`, `'10'`,
+  `'11'`, `'99'` (voorloopnul). "Fiets" zoek ik op via het label, niet via de code.
+- **`Gemeente_Jaar`:** één extra tabel (bevolking + tellingen) met Municipality, Province en Region
+  uit `Dim_NIS`, Total, Accidents, Bike_Accidents en Serious_Bike_Accidents. De drie tellingen
+  volgen uit de definities in `CLAUDE.md`.
+- **`Hour` = 99** (3 rijen) blijft staan, want we verwijderen geen rijen.
+- **De 138 punten > 50 km van hun eigen gemeente** (op basis van de coördinaten) blijven staan en
+  tellen mee op de kaart. Ze liggen wel binnen België.

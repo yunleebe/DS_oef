@@ -9,8 +9,10 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
    met aparte, benoemde functies (één per stap) en **geen Streamlit-imports**.
 2. **`requirements.txt`** bevat enkel wat de app importeert, met versienummers
    (nu: streamlit, pandas).
-3. **Nieuw package nodig?** Vraag het EERST aan Yun, met reden en alternatief.
-   Installeer niets zonder OK.
+3. **Nieuw package nodig?** Staat het niet in `syntra-ds`: vraag het EERST aan Yun, met reden en
+   alternatief, en zet het niet in `requirements.txt`. Installeer niets zonder OK.
+   Staat het wel in `syntra-ds` en heeft de app het nodig, dan mag het zonder vragen in
+   `requirements.txt` (met versienummer).
 4. **Data** staat in `data/`, **geheimen** in `.env`. `data/`, `.env`, `__pycache__/` en `.venv/`
    staan in `.gitignore`.
 5. **Omgeving**: de conda-omgeving `syntra-ds` is de standaard. Zolang de packages uit
@@ -32,6 +34,8 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
   hetzelfde jaar.
 - **Aandeel fietsongevallen**: % fietsongevallen van alle ongevallen (zonder autosnelweg).
 - **Aandeel ernstig (fiets)**: % ernstige ongevallen van alle fietsongevallen.
+- Er worden nooit rijen verwijderd, behalve de autosnelweg. Onbekend wegtype
+  (`CD_ROAD_TYPE` = 9) blijft in de data.
 - **Autosnelweg** (`CD_ROAD_TYPE` = 1) is uitgesloten voor de hele analyse, omdat fietsers daar
   niet mogen rijden. Dit staat altijd zichtbaar bovenaan in de app.
 
