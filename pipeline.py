@@ -274,9 +274,23 @@ def zet_coordinaten_om(ongevallen: pd.DataFrame) -> pd.DataFrame:
     return resultaat
 
 
+def _met_hoofdletter(dimensie: pd.DataFrame) -> pd.DataFrame:
+    """Laat elk label (alle kolommen behalve de ID, de eerste) met een hoofdletter beginnen.
+
+    Enkel de eerste letter verandert ("met zwaargewonden" -> "Met zwaargewonden"); de rest blijft.
+    """
+    resultaat = dimensie.copy()
+    for kolom in resultaat.columns[1:]:
+        resultaat[kolom] = resultaat[kolom].str[:1].str.upper() + resultaat[kolom].str[1:]
+    return resultaat
+
+
 def maak_dimensie(ongevallen: pd.DataFrame, kolommen: dict[str, str]) -> pd.DataFrame:
-    """Unieke rijen van de bronkolommen, hernoemd en gesorteerd op de ID (eerste kolom)."""
-    dimensie = ongevallen[list(kolommen)].rename(columns=kolommen).drop_duplicates()
+    """Unieke rijen van de bronkolommen, hernoemd en gesorteerd op de ID (eerste kolom).
+
+    De labels beginnen met een hoofdletter.
+    """
+    dimensie = _met_hoofdletter(ongevallen[list(kolommen)].rename(columns=kolommen)).drop_duplicates()
     return dimensie.sort_values(dimensie.columns[0]).reset_index(drop=True)
 
 
@@ -289,12 +303,7 @@ def maak_dim_road_user(ongevallen: pd.DataFrame) -> pd.DataFrame:
         ongevallen[list(bron)].rename(columns=bron).drop_duplicates()
         for bron in ROAD_USER_BRONNEN
     ]
-    dimensie = pd.concat(delen).drop_duplicates()
-    # Eerste letter een hoofdletter ("personenauto" -> "Personenauto"); de rest blijft zoals het is.
-    dimensie["Road User Type"] = dimensie["Road User Type"].str[:1].str.upper() + dimensie[
-        "Road User Type"
-    ].str[1:]
-    dimensie = dimensie.drop_duplicates()
+    dimensie = _met_hoofdletter(pd.concat(delen).drop_duplicates()).drop_duplicates()
     conflicten = dimensie[dimensie.duplicated("Road User Type ID", keep=False)]
     if not conflicten.empty:
         raise ValueError(f"Eén code met meerdere labels in Dim_Road_User:\n{conflicten}")

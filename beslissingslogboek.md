@@ -238,11 +238,24 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
   autosnelweg, per jaar en per gewest. In de app zelf kloppen de kaarten bij elke wijziging.
 - **Aannames van Claude:**
   - Een lege keuze bij Wegtype betekent alle wegtypes, dus mét autosnelweg. De banner waarschuwt dan.
+    **Bevestigd door Yun:** de standaard is Gemeenteweg, Gewestweg en onbekend. De keuze mag leeg
+    zijn als de gebruiker zelf alles uitvinkt.
   - `Dim_Road_Type` en `Dim_NIS` zijn onveranderd (alle 581 gemeenten, alle 4 wegtypes).
   - Datakwaliteit blijft over de volledige data gaan, nu inclusief de autosnelweg. Het aantal
     gemeente-jaren zonder ongevallen blijft 14, ook met de autosnelweg erbij.
   - `Gemeente_Jaar` toont enkel de gemeenten en jaren van de selectie (Jaar, Gewest, Provincie,
     Gemeente). Een gemeente zonder ongevallen in de selectie krijgt 0.
+
+### 23. Labels in alle dimensies beginnen met een hoofdletter
+- **Antwoord:** ja, alle labels in de dimensietabellen krijgen een hoofdletter (niet alleen
+  Road User Type, zoals in beslissing 17).
+- **Reden:** zo maken we de gold layer (de laag met schone, analyseklare tabellen).
+- **Uitvoering:** `pipeline.py` zet de eerste letter van elk label om (`_met_hoofdletter`); de rest
+  blijft zoals het is. Dat veranderde precies vijf labels: "Dodelijk gewonden", "Met zwaargewonden"
+  en "Met lichtgewonden" bij Class Accidents, en "Onbekend" bij Crossway en bij Road Type. Alle
+  andere labels begonnen al met een hoofdletter. ID's, `Fact_Accidents` en `Fact_Population` zijn
+  onveranderd (vergeleken met de vorige parquet). De ernstklassen worden zonder rekening te houden
+  met hoofdletters herkend, dus de kaarten veranderen niet (opnieuw getest).
 
 ### Aannames van Claude bij stap 21 (nog niet bevestigd door Yun)
 - **Welke kaarten:** zes, afgeleid van de definities in `CLAUDE.md`: Ongevallen, Fietsongevallen,

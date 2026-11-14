@@ -76,6 +76,8 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
 
 - Het datamodel bestaat uit `Dim_*`-tabellen, `Fact_Accidents` en `Fact_Population`.
   Tabel- en kolomnamen volgen de lijst in `beslissingslogboek.md` (beslissing 13 tot 15).
+- Labels in de dimensietabellen beginnen met een hoofdletter (gold layer: schone, analyseklare
+  tabellen). Enkel de eerste letter verandert.
 - **Coördinaten**: lege waarden en punten buiten België tellen als "geen coördinaten". Die rijen
   blijven in de analyse. De bron-coördinaten zijn Belgisch Lambert 72 (EPSG:31370) en worden
   met `pyproj` omgezet naar WGS84 (Latitude en Longitude).
