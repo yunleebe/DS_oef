@@ -93,7 +93,12 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
 ### 11. Wat doen we met `CD_ROAD_TYPE` 9 (onbekend, 1.502 rijen)?
 - **Antwoord:** onbekend wegtype blijft in de data. We verwijderen geen rijen. Enkel
   Autosnelweg is uitgesloten.
-- **Reden:** geen reden opgegeven.
+- **Reden:** 1.502 rijen zijn veel, en er zitten ongevallen met een fiets of voetganger bij. Er is
+  geen reden om ze uit te sluiten.
+- **Controle door Claude:** de 1.502 ongevallen zijn 0,56% van `Fact_Accidents`. Daarvan hebben er
+  301 een fiets (0,42% van alle fietsongevallen), 123 een voetganger en 402 een fiets of een
+  voetganger. Per jaar: 379, 337, 159, 141, 106, 125, 126 en 129 (2017 tot 2024); 2017 en 2018
+  liggen dus duidelijk hoger dan de latere jaren.
 
 ### 12. Mag `openpyxl` in `requirements.txt`?
 - **Antwoord:** ja. Alle packages die in `syntra-ds` staan, mag Claude toevoegen aan
@@ -193,7 +198,8 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
   `'11'`, `'99'` (voorloopnul). (Fiets: zie beslissing 17.)
 - **`Gemeente_Jaar`:** één extra tabel (bevolking + tellingen) met Municipality, Province en Region
   uit `Dim_NIS`, Total, Accidents, Bike_Accidents en Serious_Bike_Accidents. De drie tellingen
-  volgen uit de definities in `CLAUDE.md`.
+  volgen uit de definities in `CLAUDE.md`. **Bevestigd door Yun:** de tabel toont duidelijk wat
+  nodig is en blijft. De ongebruikte stubs `voeg_regio_toe` en `tel_per_regio` zijn weg.
 - **`Hour` = 99** (3 rijen) blijft staan, want we verwijderen geen rijen.
 - **De 138 punten > 50 km van hun eigen gemeente** (op basis van de coördinaten) blijven staan en
   tellen mee op de kaart. Ze liggen wel binnen België.
