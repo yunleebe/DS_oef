@@ -18,3 +18,28 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
 6. **Git**: de map is al een repo; geen `git init`. Yun doet de commits zelf, met een eigen
    boodschap. Commit nooit. Meld wanneer een stap werkt, zodat Yun kan committen.
 7. **Windows** is het standaardbesturingssysteem (PowerShell, `C:\Users\<jij>\...`).
+8. **Beslissingslogboek**: noteer elke beslissing van Yun in `beslissingslogboek.md`
+   (vraag, antwoord, reden).
+
+## Definities (ongevallendata)
+
+- Een rij is een ongeval. De dataset bevat enkel ongevallen met minstens één dode of gewonde.
+- **Fietsongeval**: `CD_ROAD_USR_TYPE1` of `CD_ROAD_USR_TYPE2` is "Fiets" (code 3). Elk ongeval
+  telt één keer, ook als beide partijen een fiets zijn.
+- **Ernstig ongeval**: `CD_CLASS_ACCIDENTS` is "Met doden", "dodelijk gewonden" of
+  "met zwaargewonden" (codes 1, 2, 3).
+- **Fietsongevallengraad**: fietsongevallen per 100.000 inwoners, met de bevolking van
+  hetzelfde jaar.
+- **Aandeel fietsongevallen**: % fietsongevallen van alle ongevallen (zonder autosnelweg).
+- **Aandeel ernstig (fiets)**: % ernstige ongevallen van alle fietsongevallen.
+- **Autosnelweg** (`CD_ROAD_TYPE` = 1) is uitgesloten voor de hele analyse, omdat fietsers daar
+  niet mogen rijden. Dit staat altijd zichtbaar bovenaan in de app.
+
+## Opschonen (ongevallendata)
+
+- Brussel krijgt "Brussels Hoofdstedelijk Gewest" als provincie.
+- Rijen zonder coördinaten blijven in de analyse.
+- De 66 volledig identieke rijen blijven staan.
+- Alle kolommen die met `CD_` beginnen zijn ID-kolommen en blijven tekst; `CD_NIS` ook
+  (voorloopnullen blijven behouden).
+- Alle kolommen die op `_FR` eindigen worden verwijderd.
