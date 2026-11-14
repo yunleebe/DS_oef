@@ -11,9 +11,9 @@ import pipeline
 st.set_page_config(page_title="Fietsongevallen in België", layout="wide")
 
 
-@st.cache_data(show_spinner="Data wordt ingelezen (eerste keer duurt ongeveer 1,5 minuut)...")
+@st.cache_data(show_spinner="Data wordt geladen...")
 def laad_datamodel():
-    return pipeline.maak_datamodel()
+    return pipeline.laad_of_bouw_datamodel()
 
 
 st.title("Fietsongevallen in België, 2017–2024")

@@ -162,6 +162,24 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
   3 "met zwaargewonden" en 23 "met lichtgewonden". Per jaar: 13, 11, 17, 10, 9, 27, 19 en 26
   (2017 tot 2024). Totaal fietsongevallen over alle wegtypes: 71.881; zonder autosnelweg: 71.749.
 
+### 19. Parquet voor snel laden, en in git
+- **Antwoord:** het verwerkte datamodel wordt als parquet opgeslagen en mag in git en op GitHub
+  staan.
+- **Reden:** de opdracht vraagt een GitHub-repo en een werkende, publieke Streamlit-URL, dus de app
+  draait op Streamlit Community Cloud. Daar zijn de Excel-bestanden (58 MB, `data/` staat in
+  `.gitignore`) er niet. De brondata is open data.
+- **Uitvoering:** de parquet staat in `data/parquet/` (15 bestanden, samen 5,2 MB). `.gitignore` houdt
+  de rest van `data/` buiten git (`data/*`, behalve `!data/parquet/`). `pyarrow==24.0.0` toegevoegd
+  (staat in `syntra-ds`; Streamlit heeft het zelf ook nodig). Alle pins bestaan ook op PyPI,
+  nodig voor Cloud. `pipeline.py` heeft nu `schrijf_parquet`, `lees_parquet`, `parquet_is_actueel`
+  en `laad_of_bouw_datamodel`; `python pipeline.py` herbouwt de parquet.
+- **Controle:** de tabellen en controles uit parquet zijn identiek aan die uit Excel (waarden en
+  types). Inladen duurt 0,2 s in plaats van ongeveer 94 s. Een kopie van de app zonder Excel draait
+  zonder fouten met dezelfde cijfers.
+- **Aanname van Claude:** is de parquet ouder dan de Excel-bestanden of `pipeline.py`, dan herbouwt
+  de app ze automatisch (alleen als de Excel-bestanden er zijn). Zo werk je nooit met verouderde
+  data na een aanpassing. Na zo'n herbouw moet je de gewijzigde parquet opnieuw committen.
+
 ### Aannames van Claude bij deze stap (nog niet bevestigd door Yun)
 - **Autosnelweg:** de rijen verdwijnen in `Fact_Accidents` (21.860 van 289.532). De dimensies
   worden gebouwd vóór die uitsluiting, dus `Dim_Road_Type` bevat nog "Autosnelweg" en `Dim_NIS`

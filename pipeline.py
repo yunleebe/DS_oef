@@ -13,6 +13,13 @@ DATA_DIR = Path(__file__).parent / "data"
 ONGEVALLEN_BESTAND = DATA_DIR / "OPENDATA_MAP_2017-2024.xlsx"
 BEVOLKING_BESTAND = DATA_DIR / "Bevolking_per_gemeente_2017-2024.xlsx"
 
+# De parquet-bestanden (het verwerkte datamodel) staan wel in git: Streamlit Community Cloud
+# heeft de Excel-bestanden niet, en inlezen uit parquet duurt 0,3 s in plaats van ~1,5 minuut.
+PARQUET_DIR = DATA_DIR / "parquet"
+CONTROLE_BEVOLKING = "Controle_Bevolking"
+DATAKWALITEIT_NIS = "Datakwaliteit_NIS"
+CONTROLE_ONGEVALLEN = "Controle_Ongevallen"
+
 BRUSSEL = "Brussels Hoofdstedelijk Gewest"
 AUTOSNELWEG_ID = "1"
 AUTOSNELWEG_LABEL = "Autosnelweg"
@@ -401,3 +408,64 @@ def maak_datamodel() -> tuple[dict[str, pd.DataFrame], dict]:
         "Datakwaliteit NIS": datakwaliteit_nis(fact_accidents, fact_population, dimensies["Dim_NIS"]),
     }
     return tabellen, controles
+
+
+def schrijf_parquet(
+    tabellen: dict[str, pd.DataFrame], controles: dict, map: Path = PARQUET_DIR
+) -> None:
+    """Schrijf het datamodel en de controles als parquet-bestanden (één per tabel)."""
+    map.mkdir(parents=True, exist_ok=True)
+    for naam, tabel in tabellen.items():
+        tabel.to_parquet(map / f"{naam}.parquet", index=False)
+    controles["Controle bevolking"].to_parquet(map / f"{CONTROLE_BEVOLKING}.parquet")
+    controles["Datakwaliteit NIS"].to_parquet(map / f"{DATAKWALITEIT_NIS}.parquet", index=False)
+    aantallen = pd.DataFrame(
+        {k: [controles[k]] for k in ["Ongevallen ingelezen", "Autosnelweg uitgesloten"]}
+    )
+    aantallen.to_parquet(map / f"{CONTROLE_ONGEVALLEN}.parquet", index=False)
+
+
+def lees_parquet(map: Path = PARQUET_DIR) -> tuple[dict[str, pd.DataFrame], dict]:
+    """Lees het datamodel en de controles terug uit parquet. Geeft (tabellen, controles) terug."""
+    bestanden = {f.stem: pd.read_parquet(f) for f in sorted(map.glob("*.parquet"))}
+    aantallen = bestanden.pop(CONTROLE_ONGEVALLEN).iloc[0]
+    controles = {
+        "Ongevallen ingelezen": int(aantallen["Ongevallen ingelezen"]),
+        "Autosnelweg uitgesloten": int(aantallen["Autosnelweg uitgesloten"]),
+        "Controle bevolking": bestanden.pop(CONTROLE_BEVOLKING),
+        "Datakwaliteit NIS": bestanden.pop(DATAKWALITEIT_NIS),
+    }
+    return bestanden, controles
+
+
+def parquet_is_actueel(map: Path = PARQUET_DIR) -> bool:
+    """Is de parquet bruikbaar? Bestaan de bestanden, en zijn ze nieuwer dan hun bronnen?
+
+    Zijn de Excel-bestanden er niet (bv. op Streamlit Community Cloud), dan wordt de parquet
+    gebruikt zoals ze is. Staan ze er wel, dan moet de parquet nieuwer zijn dan de Excel-bestanden
+    en dan pipeline.py; anders is ze verouderd.
+    """
+    bestanden = list(map.glob("*.parquet"))
+    if not bestanden:
+        return False
+    if not (ONGEVALLEN_BESTAND.exists() and BEVOLKING_BESTAND.exists()):
+        return True
+    nieuwste_bron = max(
+        b.stat().st_mtime for b in [ONGEVALLEN_BESTAND, BEVOLKING_BESTAND, Path(__file__)]
+    )
+    return min(f.stat().st_mtime for f in bestanden) > nieuwste_bron
+
+
+def laad_of_bouw_datamodel() -> tuple[dict[str, pd.DataFrame], dict]:
+    """Lees de parquet als die actueel is; bouw anders het datamodel uit Excel en schrijf parquet."""
+    if parquet_is_actueel():
+        return lees_parquet()
+    tabellen, controles = maak_datamodel()
+    schrijf_parquet(tabellen, controles)
+    return tabellen, controles
+
+
+if __name__ == "__main__":
+    # `python pipeline.py` herbouwt de parquet uit de Excel-bestanden (ongeveer 1,5 minuut).
+    schrijf_parquet(*maak_datamodel())
+    print(f"Parquet geschreven naar {PARQUET_DIR}")
