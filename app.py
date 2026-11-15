@@ -557,8 +557,8 @@ def toon_vergelijking(gemeente_jaar) -> None:
     st.caption(
         f"**Maat:** elke bol is {n['dit']}. Links-rechts: het gemiddeld aantal inwoners per jaar. "
         "Boven-onder: het aantal fietsongevallen per 100.000 inwoners per jaar. De grootte van de bol: "
-        f"het totaal aantal fietsongevallen. De stippellijnen tonen {referentie}, het "
-        f"{keuze.lower()} met de meeste fietsongevallen. Een bol rechts van de verticale lijn heeft meer "
+        f"het totaal aantal fietsongevallen. De stippellijnen tonen {referentie}, "
+        f"{n['dit']} met de meeste fietsongevallen. Een bol rechts van de verticale lijn heeft meer "
         "inwoners, een bol boven de horizontale lijn meer fietsongevallen per inwoner. Een grote bol "
         "betekent veel inwoners, veel ongevallen per inwoner, of allebei. Er zijn geen gegevens over hoeveel "
         "er gefietst wordt: 'per inwoner' is niet 'per gefietste kilometer'."
@@ -641,7 +641,7 @@ def toon_wanneer(gefilterd, tabellen) -> None:
             f"samen. Het meeste: {piek_tekst} ({fmt_getal(verdeling['Bike_Accidents'].max())}); het minste: "
             f"{rustig_tekst} ({fmt_getal(verdeling['Bike_Accidents'].min())}). Het zegt niets over het risico "
             "per fietser: op drukke momenten fietsen er ook meer mensen. "
-            f"**Maat rechts:** ernstige fietsongevallen als % van de fietsongevallen in dat {titel}. De stippellijn is "
+            f"**Maat rechts:** ernstige fietsongevallen als % van de fietsongevallen in {'dat uur' if kolom == 'Hour' else 'die maand'}. De stippellijn is "
             f"het gemiddelde ({fmt_getal(gemiddeld, 1)} %). "
             + (
                 f"Grijze staven hebben minder dan {pipeline.MIN_FIETSONGEVALLEN} fietsongevallen; "
