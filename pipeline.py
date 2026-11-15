@@ -524,6 +524,113 @@ def maak_jaartrend(gemeente_jaar: pd.DataFrame) -> pd.DataFrame:
     return per_jaar
 
 
+def maak_maandtelling(gefilterd: pd.DataFrame, tabellen: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Fietsongevallen per jaar en maand (1-12); een maand zonder ongevallen krijgt 0."""
+    fietsen = filter_fietsongevallen(gefilterd, tabellen["Dim_Road_User"])
+    telling = fietsen.groupby(["Year", "Month"]).size().rename("Bike_Accidents")
+    jaren = sorted(gefilterd["Year"].unique())
+    volledig = pd.MultiIndex.from_product([jaren, range(1, 13)], names=["Year", "Month"])
+    return telling.reindex(volledig, fill_value=0).reset_index()
+
+
+MAX_KAARTPUNTEN = 20_000
+JAAR_BETERE_COORDINATEN = 2022  # vanaf dan ontbreken er veel minder coördinaten
+
+
+def selecteer_kaartongevallen(
+    gefilterd: pd.DataFrame, tabellen: dict[str, pd.DataFrame], alleen_fiets: bool
+) -> pd.DataFrame:
+    """De ongevallen voor de kaart: enkel fietsongevallen, of alle ongevallen na de filters."""
+    if alleen_fiets:
+        return filter_fietsongevallen(gefilterd, tabellen["Dim_Road_User"])
+    return gefilterd
+
+
+def maak_kaartdata(ongevallen: pd.DataFrame, graden: int = 2) -> pd.DataFrame:
+    """Ongevallen met coördinaten, samengeteld per vakje van `graden` decimalen (2 = ± 1 km).
+    Kolommen: Latitude, Longitude, Accidents."""
+    met = ongevallen.dropna(subset=["Latitude", "Longitude"])
+    return (
+        met.assign(Latitude=met["Latitude"].round(graden), Longitude=met["Longitude"].round(graden))
+        .groupby(["Latitude", "Longitude"], as_index=False)
+        .size()
+        .rename(columns={"size": "Accidents"})
+    )
+
+
+def maak_kaartpunten(ongevallen: pd.DataFrame, maximum: int = MAX_KAARTPUNTEN) -> pd.DataFrame:
+    """Afzonderlijke punten met coördinaten; boven het maximum een vaste willekeurige steekproef."""
+    met = ongevallen.dropna(subset=["Latitude", "Longitude"])
+    if len(met) > maximum:
+        met = met.sample(maximum, random_state=0)
+    return met[["Latitude", "Longitude", "Year"]]
+
+
+def zonder_coordinaten_per_provincie_jaar(
+    ongevallen: pd.DataFrame, dim_nis: pd.DataFrame
+) -> pd.DataFrame:
+    """% ongevallen zonder coördinaten per provincie (rijen) en jaar (kolommen), met totalen.
+    Een lege cel betekent: geen ongevallen in die combinatie."""
+    nis = dim_nis[["NIS", "Province"]].drop_duplicates("NIS")
+    d = ongevallen[["NIS", "Year", "Latitude"]].merge(nis, on="NIS", how="left")
+    d["Zonder"] = d["Latitude"].isna()
+    per_provincie = d.pivot_table(index="Province", columns="Year", values="Zonder", aggfunc="mean")
+    totaal_jaar = d.groupby("Year")["Zonder"].mean().rename("Totaal")
+    resultaat = pd.concat([per_provincie, totaal_jaar.to_frame().T]) * 100
+    resultaat["Alle jaren"] = pd.concat([d.groupby("Province")["Zonder"].mean(), pd.Series({"Totaal": d["Zonder"].mean()})]) * 100
+    return resultaat
+
+
+TOP_GEMEENTEN = 20
+
+
+def maak_niveauvergelijking(
+    gemeente_jaar: pd.DataFrame, niveau: str = "Region", top: int | None = None
+) -> pd.DataFrame:
+    """Per gewest (`Region`), provincie (`Province`) of gemeente (`Municipality`): inwoners (som
+    over de gekozen jaren), fietsongevallen, graad per 100.000 inwoners en het aandeel in de
+    totale bevolking en in de fietsongevallen. De aandelen gaan over alle eenheden van de selectie;
+    met `top` blijven enkel de eenheden met de meeste fietsongevallen over (gesorteerd)."""
+    if niveau == "Municipality":
+        # Twee gemeenten kunnen dezelfde naam hebben: voeg dan de provincie toe.
+        d = gemeente_jaar.assign(
+            Label=gemeente_jaar["Municipality"].where(
+                ~gemeente_jaar.groupby("Municipality")["NIS"].transform("nunique").gt(1),
+                gemeente_jaar["Municipality"] + " (" + gemeente_jaar["Province"] + ")",
+            )
+        )
+        eenheden = d.groupby("Label")[["Total", "Bike_Accidents"]].sum()
+    else:
+        eenheden = gemeente_jaar.groupby(niveau)[["Total", "Bike_Accidents"]].sum()
+    eenheden["Bike_Rate"] = eenheden["Bike_Accidents"] / eenheden["Total"] * 100_000
+    eenheden["Population_Share"] = eenheden["Total"] / eenheden["Total"].sum() * 100
+    eenheden["Bike_Accidents_Share"] = (
+        eenheden["Bike_Accidents"] / eenheden["Bike_Accidents"].sum() * 100
+    )
+    eenheden = eenheden.sort_values("Bike_Accidents", ascending=False)
+    return eenheden.head(top) if top else eenheden
+
+
+def ontleed_verschil(gewesten: pd.DataFrame, referentie: str, ander: str) -> dict[str, float]:
+    """Splits het verschil in fietsongevallen (referentie min ander) in een deel door het verschil
+    in aantal inwoners en een deel door het verschil in graad per inwoner.
+
+    verschil = P_ref * r_ref - P_ander * r_ander
+             = (P_ref - P_ander) * r_gem  +  P_gem * (r_ref - r_ander)
+    met r_gem en P_gem het gemiddelde van beide gewesten. Zo hangt de uitkomst niet af van welk
+    gewest als vertrekpunt dient. De twee delen tellen exact op tot het verschil."""
+    a, b = gewesten.loc[referentie], gewesten.loc[ander]
+    p_a, p_b = a["Total"], b["Total"]
+    r_a, r_b = a["Bike_Accidents"] / p_a, b["Bike_Accidents"] / p_b
+    bevolking = (p_a - p_b) * (r_a + r_b) / 2
+    graad = (p_a + p_b) / 2 * (r_a - r_b)
+    return {
+        "Verschil": float(a["Bike_Accidents"] - b["Bike_Accidents"]),
+        "Bevolking": float(bevolking),
+        "Graad": float(graad),
+    }
+
+
 def aantal_autosnelweg(tabellen: dict[str, pd.DataFrame]) -> int:
     """Aantal ongevallen op de autosnelweg in Fact_Accidents (alle jaren en gemeenten)."""
     dim = tabellen["Dim_Road_Type"]

@@ -277,8 +277,61 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
 - **Heatmap:** enkel de top 20 gemeenten, volgens de sortering in "Waar".
 - **Bij elke grafiek** staat één zin over de maat. De fietsongevallengraad is per inwoner; er zijn
   geen gegevens over hoeveel er gefietst wordt.
+- **Maandgrafiek (Trend):** fietsongevallen per maand, één lijn per jaar (`maak_maandtelling`).
+  Yun vergeleek twee versies: een eigen palet van acht kleuren (met symbolen) en blauwtinten.
+  Ze koos de **blauwtinten**, omdat die goed tonen dat er in recente jaren meer fietsongevallen
+  zijn. Het oudste jaar is het lichtst, het recentste het donkerst. De legende staat omgekeerd
+  (recentste jaar bovenaan), zodat jaar en lijn beter te koppelen zijn. De validator keurde het
+  eigen palet niet volledig goed (grijzige kleuren, twee kleuren die voor rood-groen-
+  kleurenblinden lijken op elkaar). Dat speelde mee, al koos Yun om de duidelijkheid.
+- **Kaart gebouwd (stap 2):** twee keuzes boven de kaart: *Fietsongevallen | Alle ongevallen*
+  (standaard fiets) en *Concentratie | Afzonderlijke punten* (standaard concentratie). De
+  concentratiekaart telt ongevallen samen per vakje van ± 1 km (`maak_kaartdata`); de punten zijn
+  een vaste steekproef van maximaal 20.000 (`maak_kaartpunten`), met melding. De zin onder de kaart
+  zegt hoeveel van de ongevallen op de kaart staan. Een uitklapbare tabel toont het % zonder
+  coördinaten per provincie en jaar, en een waarschuwing verschijnt als de gekozen jaren over 2022
+  lopen (vanaf 2022 ontbreken veel minder coördinaten: totaal 14,7 % in 2017, 4,1 % in 2022).
+- **Gewesten vergeleken (tabblad Waar, eerste deel):** Yun merkte dat Wallonië minder
+  fietsongevallen heeft maar ook minder inwoners, en wilde weten hoeveel van het verschil daardoor
+  komt. Twee grafieken: (1) aandeel van de bevolking naast aandeel van de fietsongevallen per
+  gewest; (2) het verschil met het gewest met de meeste fietsongevallen (vast, geen keuzelijst),
+  opgesplitst in "door minder inwoners" en "door minder ongevallen per inwoner"
+  (`ontleed_verschil`), als balken die samen 100 % zijn. Yun vond de eerste versie (gestapelde
+  aantallen, een keuzelijst en bijna gelijke zinnen per gewest) onduidelijk; nu staat er één
+  voorbeeldzin in de maatzin en een tabel met de cijfers.
+  Methode: gemiddelde van beide volgordes, zodat de uitkomst niet afhangt van het vertrekpunt; de
+  twee delen tellen exact op tot het verschil. Resultaat (standaard): Wallonië heeft 53.907
+  fietsongevallen minder dan Vlaanderen, waarvan 29 % door het kleinere aantal inwoners en 71 %
+  door minder ongevallen per inwoner; bij Brussel is dat 73 % bevolking en 27 % graad.
+- **Niveau-keuze in het tabblad Waar:** boven beide visuals staat een keuze *Gewest | Provincie |
+  Gemeente*. Titels en maatzinnen veranderen mee. Bij Gemeente blijven enkel de 20 gemeenten met de
+  meeste fietsongevallen over (anders is de grafiek veel te lang); de aandelen worden wel berekend
+  over alle 581 gemeenten, en de tweede grafiek vergelijkt de andere 19 met de gemeente met de
+  meeste fietsongevallen (Antwerpen). Eenheden waar de twee oorzaken in tegengestelde richting
+  werken (bijvoorbeeld meer inwoners maar toch minder fietsongevallen) krijgen geen percentage;
+  dat staat onder de grafiek vermeld (bij de top 20 gemeenten 6 van de 19).
 - **Stap 1 gebouwd:** tabbladen en de trendgrafieken (`maak_jaartrend` in `pipeline.py`),
   gecontroleerd met een onafhankelijke pandas-telling.
+- **Derde trendgrafiek (aandeel ernstig):** Yun vroeg of de piek in 2022 (graad 88,5 per 100.000
+  tegenover 70,5 in 2017 en 77,9 in 2024) betekent dat fietsen gevaarlijker werd. Antwoord: dat
+  kan de data niet zeggen, om drie redenen. (1) Een rij is een ongeval, geen slachtoffer. (2) De
+  graad is per inwoner, niet per gefietste kilometer: er kan meer gefietst zijn. (3) De
+  registratie veranderde rond 2022 (veel minder ontbrekende coördinaten), wat ook het aantal
+  geregistreerde ongevallen kan beïnvloeden; dat is niet onderzocht. Het aandeel ernstig is
+  stabiel of licht gedaald (11,0 % in 2017 en 2022, 9,8 % in 2024), dus niets wijst op zwaardere
+  ongevallen. Daarom staat er een derde grafiek met het aandeel ernstig per jaar.
+- **Maatzinnen aangepast na feedback van Yun:** de zin onder de graadgrafiek zegt nu dat het om
+  fietsongevallen gaat en niet om slachtoffers, en dat het niet het risico per gefietste kilometer
+  is. De zin "dan komt het gewest precies overeen met zijn bevolking" was onduidelijk; nu staat er
+  "evenveel fietsongevallen als je op basis van zijn aantal inwoners zou verwachten", met uitleg
+  wat een langere of kortere oranje balk betekent. Yun las de uitkomst als "29 % door meer
+  inwoners en 71 % door meer ongevallen"; precies is dat "meer ongevallen per inwoner".
+- **Wat de kaart toont (opmerking van Yun):** de concentratiekaart is goed leesbaar. Wallonië
+  heeft duidelijk minder fietsongevallen, maar er wonen ook minder mensen. Per inwoner blijft er
+  een groot verschil (19,4 in Wallonië, 111,9 in Vlaanderen en 67,0 in Brussel per 100.000);
+  daarom komt er naast de kaart (aantallen) ook een vergelijking per inwoner. De kaart overdrijft
+  het verschil licht, omdat in Wallonië meer coördinaten ontbreken (Luik en Henegouwen tot ruim
+  30 % in sommige jaren).
 
 ### Aannames van Claude bij stap 21 (nog niet bevestigd door Yun)
 - **Welke kaarten:** zes, afgeleid van de definities in `CLAUDE.md`: Ongevallen, Fietsongevallen,

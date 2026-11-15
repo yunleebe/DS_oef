@@ -88,3 +88,44 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
 - **Gemeentenamen** in de app komen uit `Dim_NIS` (ongevallenbestand).
 - De app heeft een sectie **"Datakwaliteit"** met NIS-codes (per jaar) die maar in één van de
   twee bestanden voorkomen.
+
+## Visuals
+
+- Grafieken met `plotly`, onder tabbladen: Trend, Kaart, Waar, Wanneer, Omstandigheden,
+  Tegenpartij. De filters blijven in de zijbalk. Geen dubbele as: één maat per grafiek.
+- Onder elke grafiek of tabel staat één zin over de maat. De fietsongevallengraad is per inwoner
+  en niet per gefietste kilometer (daar zijn geen gegevens over); een ongeval is geen slachtoffer.
+- **Trend per gemeente/provincie**: helling van de rechte lijn door de jaarlijkse
+  fietsongevallengraad, in % van het gemiddelde per jaar. Boven +2 % per jaar = stijgend, onder
+  −2 % = dalend, ertussen stabiel; met sparkline. Bij minder dan 4 gekozen jaren: "–".
+- **Minimum 30 fietsongevallen** (over de gekozen jaren samen) voor rangschikkingen op een
+  verhouding (graad, aandelen, trend). De gebruiker kan het minimum aanpassen. Bij sorteren op
+  aantal geldt geen drempel. Gemeenten eronder staan er wel, gemarkeerd "te weinig data".
+- **Weer**: categorieën onder 1 % worden "Overige"; "Onbekend" blijft apart.
+- **Kaart**: standaard enkel fietsongevallen, met schakelaar naar alle ongevallen. Standaard een
+  concentratiekaart; afzonderlijke punten zijn begrensd tot 20.000, met melding. Geen
+  gemeentegrenzenkaart.
+- **Heatmap**: enkel de top 20 gemeenten, volgens de sortering in "Waar".
+- Bij 2020–2021 staat in tijdreeksen een arcering "corona".
+- **Wat een zin of titel mag beweren:** een fietsongeval is geen slachtoffer. De graad is per
+  inwoner en zegt niets over "gevaarlijker", want er zijn geen gegevens over gefietste kilometers.
+  Een stijging of daling nooit als "gevaarlijker/veiliger" duiden zonder dat voorbehoud.
+- **Tijdreeks per jaar:** drie aparte grafieken (graad, aandeel fietsongevallen, aandeel ernstig),
+  nooit samen op één as.
+- **Aantal per maand:** één lijn per jaar in blauwtinten (oudste jaar het lichtst); de legende
+  staat omgekeerd (recentste jaar bovenaan). Een geordende reeks krijgt één kleur in oplopende
+  tint, geen acht verschillende kleuren.
+- **Kleuren:** categorische kleuren worden gecontroleerd met de validator van de dataviz-skill.
+  Slaagt die niet, dan komt er een tweede aanduiding bij (symbool, label of tabel).
+- **Kaart:** de maatzin zegt hoeveel % van de ongevallen op de kaart staat; een tabel toont het %
+  zonder coördinaten per provincie en jaar; een waarschuwing verschijnt als de gekozen jaren over
+  2022 lopen.
+- **Vergelijking per niveau (tabblad Waar):** keuze Gewest, Provincie of Gemeente; titels en
+  maatzinnen volgen de keuze. Bij Gemeente enkel de top 20 op aantal fietsongevallen, met aandelen
+  berekend over alle gemeenten.
+- **Verschil opsplitsen:** het verschil met de eenheid met de meeste fietsongevallen wordt gesplitst
+  in "door minder inwoners" en "door minder ongevallen per inwoner", berekend met het gemiddelde van
+  beide volgordes (`ontleed_verschil`). Werken de twee oorzaken in tegengestelde richting, dan geen
+  percentage maar een vermelding onder de grafiek.
+- **Maatzinnen:** concreet en eenvoudig, met één voorbeeld met echte cijfers; geen herhaalde,
+  bijna gelijke zinnen per eenheid.
