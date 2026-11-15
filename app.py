@@ -26,6 +26,10 @@ st.markdown(
     [data-testid="stCaptionContainer"],
     [data-testid="stCaptionContainer"] p,
     [data-testid="stCaptionContainer"] li { font-size: 1rem; color: inherit; opacity: 0.85; }
+    /* Kaarten (st.metric) zes op een rij: smalle kaarten, dus label mag afbreken en het cijfer iets kleiner. */
+    [data-testid="stMetricLabel"] p { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.25; }
+    [data-testid="stMetricLabel"] { height: 4.2em; align-items: flex-start; }  /* ruimte voor 3 regels: alle kaarten even hoog */
+    [data-testid="stMetricValue"] { font-size: 1.9rem; }
     /* Tabbladen: trapeziumvorm met afgeronde bovenhoeken die licht overlappen; gekozen tabblad donkerblauw
        (#156082) met witte tekst, de andere wit met grijze hoofdletters; onder de rij een dikke lijn.
        De vorm zit in ::before (clip-path), zodat de tekst recht blijft. */
@@ -171,9 +175,8 @@ def toon_kaarten(kern: dict) -> None:
             "de filters Jaar, Gewest, Provincie en Gemeente beïnvloeden die.",
         ),
     ]
-    for rij in (kaarten[:3], kaarten[3:]):
-        for kolom, (titel, waarde, hulp) in zip(st.columns(3), rij):
-            kolom.metric(titel, waarde, help=hulp, border=True)
+    for kolom, (titel, waarde, hulp) in zip(st.columns(len(kaarten)), kaarten):
+        kolom.metric(titel, waarde, help=hulp, border=True)
 
 
 def formatteer_tabel(tabel):

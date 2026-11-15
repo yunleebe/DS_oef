@@ -426,6 +426,12 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
   schrappen (screenshot in de map `achtergrond kleur`): de achtergrond van de rij is nu transparant. Dit vervangt de parallelogramvorm
   hierboven. Aanname: hoofdletters en wit voor de niet-gekozen tabbladen komen uit het voorbeeld;
   niet gecontroleerd in dark mode. De zeven tabbladen zijn samen 944 px breed (was 834).
+- **Kaarten bovenaan: zes op een rij:** Yun vond de kaarten te breed (veel witruimte rechts in de
+  kaart) en wilde meer ruimte voor de visuals eronder. `toon_kaarten` maakt nu één rij van zes
+  kolommen in plaats van twee rijen van drie. Omdat de kaarten smaller zijn, mogen de labels over
+  maximaal drie regels afbreken (vaste labelhoogte van 4,2 em, zodat alle cijfers op dezelfde lijn
+  staan) en is het cijfer iets kleiner (1,9 rem). Bekeken in de browser bij een venster van 1500 px
+  breed; op een smaller scherm worden de kaarten nog smaller.
 - **Tegenpartij "Onbekend" blijft Onbekend:** Yun vroeg of de 530 fietsongevallen waarbij de andere
   partij code 99 "Onbekend" heeft (242 met Type1 onbekend + Type2 fiets, 288 omgekeerd; 0,7 % van de
   71.881 fietsongevallen) als eenzijdig ongeval moesten tellen. Antwoord: nee. De data zegt niet of
