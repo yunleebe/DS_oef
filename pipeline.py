@@ -582,6 +582,31 @@ def zonder_coordinaten_per_provincie_jaar(
 
 
 TOP_GEMEENTEN = 20
+MIN_FIETSONGEVALLEN = 30  # onder dit aantal zijn verhoudingen en trends te onzeker voor een ranglijst
+TREND_DREMPEL = 2.0  # % verandering per jaar; erboven stijgend, eronder dalend
+MIN_JAREN_TREND = 4
+SORTEER_OP = {
+    "Aantal fietsongevallen": "Bike_Accidents",
+    "Aantal ernstige fietsongevallen": "Serious_Bike_Accidents",
+    "Fietsongevallen per 100.000 inwoners": "Bike_Rate",
+    "Aandeel fietsongevallen": "Bike_Share",
+    "Aandeel ernstig (fiets)": "Serious_Share",
+    "Trend (verandering per jaar)": "Trend_Pct",
+}
+VERHOUDINGEN = {"Bike_Rate", "Bike_Share", "Serious_Share", "Trend_Pct"}
+
+
+def _met_eenheid(gemeente_jaar: pd.DataFrame, niveau: str) -> pd.DataFrame:
+    """Voeg de kolom `Eenheid` toe: gewest, provincie of gemeente. Twee gemeenten met dezelfde naam
+    krijgen de provincie erbij."""
+    if niveau != "Municipality":
+        return gemeente_jaar.assign(Eenheid=gemeente_jaar[niveau])
+    dubbel = gemeente_jaar.groupby("Municipality")["NIS"].transform("nunique").gt(1)
+    return gemeente_jaar.assign(
+        Eenheid=gemeente_jaar["Municipality"].where(
+            ~dubbel, gemeente_jaar["Municipality"] + " (" + gemeente_jaar["Province"] + ")"
+        )
+    )
 
 
 def maak_niveauvergelijking(
@@ -591,17 +616,7 @@ def maak_niveauvergelijking(
     over de gekozen jaren), fietsongevallen, graad per 100.000 inwoners en het aandeel in de
     totale bevolking en in de fietsongevallen. De aandelen gaan over alle eenheden van de selectie;
     met `top` blijven enkel de eenheden met de meeste fietsongevallen over (gesorteerd)."""
-    if niveau == "Municipality":
-        # Twee gemeenten kunnen dezelfde naam hebben: voeg dan de provincie toe.
-        d = gemeente_jaar.assign(
-            Label=gemeente_jaar["Municipality"].where(
-                ~gemeente_jaar.groupby("Municipality")["NIS"].transform("nunique").gt(1),
-                gemeente_jaar["Municipality"] + " (" + gemeente_jaar["Province"] + ")",
-            )
-        )
-        eenheden = d.groupby("Label")[["Total", "Bike_Accidents"]].sum()
-    else:
-        eenheden = gemeente_jaar.groupby(niveau)[["Total", "Bike_Accidents"]].sum()
+    eenheden = _met_eenheid(gemeente_jaar, niveau).groupby("Eenheid")[["Total", "Bike_Accidents"]].sum()
     eenheden["Bike_Rate"] = eenheden["Bike_Accidents"] / eenheden["Total"] * 100_000
     eenheden["Population_Share"] = eenheden["Total"] / eenheden["Total"].sum() * 100
     eenheden["Bike_Accidents_Share"] = (
@@ -611,24 +626,86 @@ def maak_niveauvergelijking(
     return eenheden.head(top) if top else eenheden
 
 
-def ontleed_verschil(gewesten: pd.DataFrame, referentie: str, ander: str) -> dict[str, float]:
-    """Splits het verschil in fietsongevallen (referentie min ander) in een deel door het verschil
-    in aantal inwoners en een deel door het verschil in graad per inwoner.
+def maak_ranglijst(
+    gemeente_jaar: pd.DataFrame,
+    niveau: str,
+    sorteer_op: str,
+    minimum: int = MIN_FIETSONGEVALLEN,
+    oplopend: bool = False,
+    top: int | None = None,
+) -> tuple[pd.DataFrame, int]:
+    """Ranglijst per gewest (`Region`), provincie (`Province`) of gemeente (`Municipality`).
 
-    verschil = P_ref * r_ref - P_ander * r_ander
-             = (P_ref - P_ander) * r_gem  +  P_gem * (r_ref - r_ander)
-    met r_gem en P_gem het gemiddelde van beide gewesten. Zo hangt de uitkomst niet af van welk
-    gewest als vertrekpunt dient. De twee delen tellen exact op tot het verschil."""
-    a, b = gewesten.loc[referentie], gewesten.loc[ander]
-    p_a, p_b = a["Total"], b["Total"]
-    r_a, r_b = a["Bike_Accidents"] / p_a, b["Bike_Accidents"] / p_b
-    bevolking = (p_a - p_b) * (r_a + r_b) / 2
-    graad = (p_a + p_b) / 2 * (r_a - r_b)
-    return {
-        "Verschil": float(a["Bike_Accidents"] - b["Bike_Accidents"]),
-        "Bevolking": float(bevolking),
-        "Graad": float(graad),
-    }
+    `sorteer_op` is een kolom uit SORTEER_OP. Bij een verhouding (graad, aandelen, trend) doen enkel
+    eenheden met minstens `minimum` fietsongevallen mee; het aantal uitgesloten eenheden is het
+    tweede deel van het resultaat. Bij sorteren op een aantal geldt geen minimum.
+    De graad heeft een ruwe 95 %-marge (Poisson: aantal ± 1,96 × wortel van het aantal).
+    De trend is de helling van de rechte lijn door de jaarlijkse graad, in % van het gemiddelde per
+    jaar, en bestaat pas vanaf MIN_JAREN_TREND jaren en `minimum` fietsongevallen."""
+    d = _met_eenheid(gemeente_jaar, niveau)
+    r = d.groupby("Eenheid")[["Total", "Accidents", "Bike_Accidents", "Serious_Bike_Accidents"]].sum()
+    r["Bike_Rate"] = r["Bike_Accidents"] / r["Total"] * 100_000
+    marge = 1.96 * r["Bike_Accidents"] ** 0.5 / r["Total"] * 100_000
+    r["Rate_Low"] = (r["Bike_Rate"] - marge).clip(lower=0)
+    r["Rate_High"] = r["Bike_Rate"] + marge
+    r["Bike_Share"] = (r["Bike_Accidents"] / r["Accidents"] * 100).where(r["Accidents"] > 0)
+    r["Serious_Share"] = (r["Serious_Bike_Accidents"] / r["Bike_Accidents"] * 100).where(
+        r["Bike_Accidents"] > 0
+    )
+
+    per_jaar = d.groupby(["Eenheid", "Year"])[["Total", "Bike_Accidents"]].sum()
+    reeks = (per_jaar["Bike_Accidents"] / per_jaar["Total"] * 100_000).unstack("Year")
+    r["Rate_Per_Year"] = reeks.reindex(r.index).apply(lambda rij: [float(x) for x in rij], axis=1)
+    r["Trend_Pct"] = float("nan")
+    if reeks.shape[1] >= MIN_JAREN_TREND:
+        x = reeks.columns.to_series().astype(float)
+        x = x - x.mean()
+        helling = reeks.sub(reeks.mean(axis=1), axis=0).mul(x, axis=1).sum(axis=1) / (x**2).sum()
+        trend = (helling / reeks.mean(axis=1) * 100).where(reeks.mean(axis=1) > 0)
+        r["Trend_Pct"] = trend.reindex(r.index)
+    genoeg = r["Bike_Accidents"] >= minimum
+    r.loc[~genoeg, "Trend_Pct"] = float("nan")
+    r["Trend"] = "–"
+    r.loc[r["Trend_Pct"].notna(), "Trend"] = "stabiel"
+    r.loc[r["Trend_Pct"] > TREND_DREMPEL, "Trend"] = "stijgend"
+    r.loc[r["Trend_Pct"] < -TREND_DREMPEL, "Trend"] = "dalend"
+    r["Genoeg_Data"] = genoeg
+
+    uitgesloten = 0
+    if sorteer_op in VERHOUDINGEN:
+        uitgesloten = int((~genoeg).sum())
+        r = r[genoeg]
+    r = r.dropna(subset=[sorteer_op]).sort_values(sorteer_op, ascending=oplopend)
+    return (r.head(top) if top else r), uitgesloten
+
+
+ONBEKEND_UUR = 99
+
+
+def maak_tijdverdeling(
+    gefilterd: pd.DataFrame, tabellen: dict[str, pd.DataFrame], kolom: str
+) -> tuple[pd.DataFrame, int]:
+    """Fietsongevallen en ernstige fietsongevallen per uur (`Hour`, 0-23) of per maand (`Month`, 1-12).
+
+    Resultaat: Bike_Accidents, Serious_Bike_Accidents en Serious_Share (% ernstig, leeg zonder
+    ongevallen); een uur of maand zonder ongevallen krijgt 0. Het tweede deel is het aantal
+    fietsongevallen met onbekend uur (99), dat niet in de uren staat."""
+    fietsen = filter_fietsongevallen(gefilterd, tabellen["Dim_Road_User"])
+    ernstig = _is_ernstig(fietsen, tabellen["Dim_Class_Accidents"])
+    onbekend = 0
+    if kolom == "Hour":
+        bekend = fietsen["Hour"] != ONBEKEND_UUR
+        onbekend = int((~bekend).sum())
+        fietsen, ernstig = fietsen[bekend], ernstig[bekend]
+    waarden = range(24) if kolom == "Hour" else range(1, 13)
+    resultaat = pd.DataFrame({
+        "Bike_Accidents": fietsen.groupby(kolom).size(),
+        "Serious_Bike_Accidents": ernstig.groupby(fietsen[kolom]).sum(),
+    }).reindex(waarden, fill_value=0)
+    resultaat["Serious_Share"] = (
+        resultaat["Serious_Bike_Accidents"] / resultaat["Bike_Accidents"] * 100
+    ).where(resultaat["Bike_Accidents"] > 0)
+    return resultaat, onbekend
 
 
 def aantal_autosnelweg(tabellen: dict[str, pd.DataFrame]) -> int:

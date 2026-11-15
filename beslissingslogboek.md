@@ -307,9 +307,61 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
   Gemeente*. Titels en maatzinnen veranderen mee. Bij Gemeente blijven enkel de 20 gemeenten met de
   meeste fietsongevallen over (anders is de grafiek veel te lang); de aandelen worden wel berekend
   over alle 581 gemeenten, en de tweede grafiek vergelijkt de andere 19 met de gemeente met de
-  meeste fietsongevallen (Antwerpen). Eenheden waar de twee oorzaken in tegengestelde richting
-  werken (bijvoorbeeld meer inwoners maar toch minder fietsongevallen) krijgen geen percentage;
-  dat staat onder de grafiek vermeld (bij de top 20 gemeenten 6 van de 19).
+  meeste fietsongevallen (Antwerpen). Eerst kregen eenheden waar de twee oorzaken in
+  tegengestelde richting werken geen balk (bij de top 20 gemeenten 6 van de 19). Yun merkte dat
+  Provincie Oost-Vlaanderen daardoor ontbrak, terwijl die de tweede is op aantal. Oost-Vlaanderen
+  heeft minder inwoners dan Antwerpen (155 % van het verschil) maar méér fietsongevallen per
+  inwoner (134,9 tegenover 125,5; −55 %). Nu staan alle eenheden in de grafiek: bij tegengestelde
+  richting loopt het ene deel naar links van nul (negatief) en is het andere groter dan 100 %.
+  Onder de grafiek staat een uitleg met een voorbeeld. De percentages blijven bescheiden (bij de
+  top 20 gemeenten tussen −22 % en 122 %).
+- **Tweede visual vervangen door een bolgrafiek:** Yun vond de balken met negatieve en
+  100+ %-delen onduidelijk ("zo een grafiek heb ik nergens gezien"). Nu is elke eenheid een bol:
+  links-rechts het gemiddeld aantal inwoners per jaar, boven-onder de fietsongevallen per 100.000
+  inwoners, grootte = aantal fietsongevallen; stippellijnen tonen de eenheid met de meeste
+  fietsongevallen. De opsplitsing in "door inwoners" en "door graad" staat als tabel (in
+  absolute aantallen) in een uitklapbaar blok. `ontleed_verschil` blijft bestaan voor die tabel.
+- **Is Knokke-Heist de gevaarlijkste gemeente? (vraag van Yun):** Knokke-Heist heeft de hoogste
+  graad (232,9 per 100.000 inwoners; 614 fietsongevallen; Belgisch gemiddelde 77,8), maar "gevaarlijkst"
+  volgt daar niet uit: (1) over de jaren wisselt de nummer 1 (Knokke-Heist alleen in 2024; rang 2–7 in
+  de meeste jaren, 16 in 2023); (2) de 95 %-marge (214–251) overlapt met die van Eeklo (199–244);
+  (3) de noemer is inwoners, geen fietsers of kilometers; (4) toeristen tellen mee in de ongevallen
+  maar niet in de inwoners; (5) het aandeel ernstig (10,9 %) is gemiddeld, in Eeklo 15,0 %; (6) de
+  registratie (enkel ongevallen met gewonden, verandering rond 2022, geen onderscheid e-bike).
+- **Ranglijst in het tabblad Waar (`maak_ranglijst`):** volgt de keuze Gewest | Provincie | Gemeente.
+  "Sorteer op": aantal fietsongevallen (standaard), aantal ernstige, graad per 100.000, aandeel
+  fietsongevallen, aandeel ernstig, trend; hoogste of laagste eerst. Gemeente toont standaard 20
+  (instelbaar). Het minimum van 30 fietsongevallen (aanpasbaar) geldt enkel bij sorteren op een
+  verhouding; eenheden eronder doen dan niet mee (hoeveel staat onder de tabel), en bij sorteren op een
+  aantal staat bij hen "te weinig data" in de verhoudingskolommen. De graad heeft een ruwe
+  95 %-marge (aantal ± 1,96 × wortel van het aantal) en een melding wanneer de marge van nummer 1
+  overlapt met andere in de lijst (nu: Knokke-Heist met 5 andere gemeenten). Trend = helling van de
+  rechte lijn door de jaarlijkse graad in % van het gemiddelde (±2 % per jaar), met kolom
+  "Graad per jaar" (sparkline); "–" bij minder dan 4 jaren. Gecontroleerd: 326 van 581 gemeenten
+  halen 30, provincies 7 stijgend en 4 stabiel, top 20 gemeenten 6 stijgend, 13 stabiel, 1 dalend.
+- **"Sorteer op" alleen bij Gemeente (keuze A van Yun):** Yun vroeg wat het voordeel was, want de
+  maten staan al als kolom in de tabel. Antwoord: bij 581 gemeenten bepaalt de keuze *welke* 20 je
+  ziet (top 20 op aantal is deels een andere lijst dan top 20 op graad) en of het minimum geldt;
+  een klik op een kolomkop ordent alleen de getoonde rijen (en sorteert de tekstgetallen als tekst).
+  Daarom blijft de keuze enkel bij Gemeente, met de naam "Toon de top 20 gemeenten volgens"
+  (samen met volgorde, aantal en minimum). Bij Gewest en Provincie staat alles in de tabel, op
+  aantal fietsongevallen, zonder keuzes.
+- **Tabblad Wanneer (`maak_tijdverdeling`):** de data heeft enkel jaar, maand en uur (geen weekdag),
+  dus het tabblad toont twee blokken: per uur van de dag en per maand. Telkens links het aantal
+  fietsongevallen en rechts het aandeel ernstig, met het gemiddelde als stippellijn. Staven met minder
+  dan 30 fietsongevallen zijn grijs, en de tooltip toont het aantal waarop het percentage steunt (zo
+  zie je het 's nachts: 18–22 % ernstig, maar op 245–479 ongevallen per uur). Uur 99 (onbekend)
+  komt bij fietsongevallen niet voor; de code vangt het toch op en meldt het. Gecontroleerd: de
+  som over uren en maanden is 71.749 (ernstig 7.829); drukste uur 16 u (7.401), drukste maand juni
+  (8.104). De maandgrafiek in Trend toont dezelfde maanden, maar per jaar.
+- **Datakwaliteit als zevende tabblad:** de sectie stond onder de tabbladen en was dus op elk
+  tabblad zichtbaar, terwijl ze over de volledige data gaat en de filters niet volgt. Yun vond dat
+  verwarrend. Nu is het een eigen tabblad rechts van Tegenpartij, met dezelfde inhoud (ingelezen
+  ongevallen, controle bevolking per jaar, NIS-codes in één bestand). Het tabblad blijft ook bij een
+  lege selectie beschikbaar. `CLAUDE.md` is aangepast.
+- **Volgorde van de balken:** van hoog naar laag op aantal fietsongevallen (grootste bovenaan).
+  Een eerste versie stond omgekeerd, omdat plotly bij horizontale balken de eerste categorie al
+  bovenaan zet en ik dat nog eens omkeerde.
 - **Stap 1 gebouwd:** tabbladen en de trendgrafieken (`maak_jaartrend` in `pipeline.py`),
   gecontroleerd met een onafhankelijke pandas-telling.
 - **Derde trendgrafiek (aandeel ernstig):** Yun vroeg of de piek in 2022 (graad 88,5 per 100.000

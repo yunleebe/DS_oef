@@ -319,12 +319,117 @@ NIVEAUS = {
 }
 
 
+MAAT_SORTEER = {
+    "Bike_Accidents": "het aantal fietsongevallen in de gekozen jaren.",
+    "Serious_Bike_Accidents": "het aantal ernstige fietsongevallen (met doden, dodelijk gewonden of zwaargewonden).",
+    "Bike_Rate": (
+        "fietsongevallen per 100.000 inwoners per jaar, met een 95 %-marge: de echte waarde ligt "
+        "waarschijnlijk tussen die twee getallen. Er zijn geen gegevens over hoeveel er gefietst wordt "
+        "en toeristen of pendelaars tellen mee in de ongevallen maar niet in de inwoners; dit is dus "
+        "niet het risico per gefietste kilometer."
+    ),
+    "Bike_Share": "fietsongevallen als % van alle ongevallen met doden of gewonden.",
+    "Serious_Share": "ernstige fietsongevallen als % van alle fietsongevallen.",
+    "Trend_Pct": (
+        "de helling van de rechte lijn door de jaarlijkse fietsongevallengraad, in % van het gemiddelde "
+        f"per jaar. Boven +{pipeline.TREND_DREMPEL:.0f} % per jaar is stijgend, onder "
+        f"−{pipeline.TREND_DREMPEL:.0f} % dalend, ertussen stabiel. Dit vraagt minstens "
+        f"{pipeline.MIN_JAREN_TREND} gekozen jaren."
+    ),
+}
+TREND_PIJL = {"stijgend": "↑", "dalend": "↓", "stabiel": "→"}
+
+
+def toon_ranglijst(gemeente_jaar, keuze: str, n: dict) -> None:
+    """Ranglijst per gewest, provincie of gemeente, met 'Sorteer op' en een minimum aantal."""
+    st.markdown(f"#### Ranglijst per {keuze.lower()}")
+    sorteer = "Aantal fietsongevallen"
+    laagste, top, minimum = False, None, pipeline.MIN_FIETSONGEVALLEN
+    if keuze == "Gemeente":
+        # Er zijn 581 gemeenten: de keuze bepaalt welke 20 (of meer) je ziet.
+        c1, c2, c3, c4 = st.columns([1.2, 3.4, 2, 2])
+        top = int(c1.number_input("Aantal gemeenten tonen", min_value=5, max_value=100, value=20, step=5, key="rang_top"))
+        sorteer = c2.selectbox(f"Toon de top {top} gemeenten volgens", list(pipeline.SORTEER_OP), key="rang_sorteer")
+        laagste = c3.radio("Volgorde", ["Hoogste eerst", "Laagste eerst"], key="rang_volgorde") == "Laagste eerst"
+        minimum = int(c4.number_input(
+            "Minimum aantal fietsongevallen", min_value=0, max_value=1000, value=pipeline.MIN_FIETSONGEVALLEN,
+            step=5, key="rang_minimum",
+            help="Geldt enkel bij een verhouding (graad, aandeel of trend): kleine aantallen geven "
+            "onbetrouwbare percentages. Telt over de gekozen jaren samen.",
+        ))
+    kolom = pipeline.SORTEER_OP[sorteer]
+    lijst, uitgesloten = pipeline.maak_ranglijst(
+        gemeente_jaar, n["kolom"], kolom, minimum, laagste, top
+    )
+    if lijst.empty:
+        st.info("Geen eenheden die aan het minimum voldoen. Verlaag het minimum of kies andere jaren.")
+        return
+
+    wegens = "te weinig data"
+    tabel = pd.DataFrame({
+        "Rang": range(1, len(lijst) + 1),
+        keuze: lijst.index,
+        "Fietsongevallen": lijst["Bike_Accidents"].map(fmt_getal),
+        "Ernstig": lijst["Serious_Bike_Accidents"].map(fmt_getal),
+    })
+    genoeg = lijst["Genoeg_Data"].to_numpy()
+
+    def toon(waarden, formatter):
+        return [formatter(w) if ok and w == w else wegens for w, ok in zip(waarden, genoeg)]
+
+    tabel["Per 100.000 inwoners"] = toon(lijst["Bike_Rate"], fmt_graad)
+    tabel["Marge (95 %)"] = [
+        f"{fmt_getal(lo, 1)} – {fmt_getal(hi, 1)}" if ok else wegens
+        for lo, hi, ok in zip(lijst["Rate_Low"], lijst["Rate_High"], genoeg)
+    ]
+    tabel["Aandeel fietsongevallen"] = toon(lijst["Bike_Share"], fmt_pct)
+    tabel["Aandeel ernstig"] = toon(lijst["Serious_Share"], fmt_pct)
+    trends = []
+    for soort, pct, ok in zip(lijst["Trend"], lijst["Trend_Pct"], genoeg):
+        if not ok:
+            trends.append(wegens)
+        elif soort == "–":
+            trends.append("– (minder dan 4 jaren)")
+        else:
+            trends.append(f"{TREND_PIJL[soort]} {soort} ({fmt_getal(pct, 1)} % per jaar)")
+    tabel["Trend"] = trends
+    tabel["Graad per jaar"] = lijst["Rate_Per_Year"].to_list()
+    st.dataframe(
+        tabel, hide_index=True,
+        column_config={"Graad per jaar": st.column_config.LineChartColumn("Graad per jaar", y_min=0)},
+    )
+
+    uitleg = f"**Maat ({sorteer.lower()}):** {MAAT_SORTEER[kolom]}"
+    st.caption(uitleg)
+    if uitgesloten:
+        st.caption(
+            f"{fmt_getal(uitgesloten)} {n['meervoud']} met minder dan {fmt_getal(minimum)} fietsongevallen "
+            "doen niet mee in deze ranglijst (te weinig data); verlaag het minimum om ze toch te zien."
+        )
+    elif (~genoeg).any():
+        st.caption(
+            f"Bij {fmt_getal(int((~genoeg).sum()))} {n['meervoud']} met minder dan {fmt_getal(minimum)} "
+            "fietsongevallen staat 'te weinig data': de verhoudingen zijn daar te onzeker."
+        )
+    if kolom == "Bike_Rate" and len(lijst) > 1:
+        eerste = lijst.iloc[0] if not laagste else lijst.iloc[-1]
+        overlap = int((((lijst["Rate_High"] >= eerste["Rate_Low"]) & (lijst["Rate_Low"] <= eerste["Rate_High"])).sum()) - 1)
+        if overlap:
+            st.caption(
+                f"De marge van {'nummer 1' if not laagste else 'de laagste'} ({eerste.name}) overlapt met die van "
+                f"{fmt_getal(overlap)} andere {n['meervoud']} in deze lijst: de volgorde onder hen is niet zeker."
+            )
+        else:
+            st.caption(f"De marge van {eerste.name} overlapt met geen enkele andere eenheid in deze lijst.")
+
+
 def toon_vergelijking(gemeente_jaar) -> None:
     """Gewesten, provincies of gemeenten vergeleken: bevolking en fietsongevallen, en waar het
     verschil met de eenheid met de meeste fietsongevallen vandaan komt."""
     st.subheader("Vergelijken per gewest, provincie of gemeente")
     keuze = st.radio("Niveau", list(NIVEAUS), horizontal=True, key="vergelijk_niveau")
     n = NIVEAUS[keuze]
+    toon_ranglijst(gemeente_jaar, keuze, n)
     top = n["top"]
     eenheden = pipeline.maak_niveauvergelijking(gemeente_jaar, n["kolom"], top)
     if len(eenheden) < 2:
@@ -352,7 +457,7 @@ def toon_vergelijking(gemeente_jaar) -> None:
     fig.update_layout(
         title=f"{n['elk'] if not top else 'De ' + str(top) + ' ' + n['meervoud'] + ' met de meeste fietsongevallen'}: aandeel van de bevolking en van de fietsongevallen",
         xaxis={"title": None, "ticksuffix": " %", "range": [0, aandelen["Aandeel"].max() * 1.2]},
-        yaxis={"title": None, "autorange": "reversed"},
+        yaxis={"title": None},  # px zet bij horizontale balken de eerste categorie al bovenaan
         legend_title_text=None, legend_orientation="h", legend_y=-0.15 if len(eenheden) < 6 else -0.08,
         margin={"t": 50, "b": 20, "l": 10, "r": 10}, height=hoogte, separators=",.",
     )
@@ -366,80 +471,135 @@ def toon_vergelijking(gemeente_jaar) -> None:
         + (f" Getoond: {wie}." if top else "")
     )
 
-    # 2. Waar komt het verschil met de eenheid met de meeste fietsongevallen vandaan?
+    # 2. De twee oorzaken in één beeld: aantal inwoners (x) en fietsongevallen per inwoner (y)
     referentie = eenheden["Bike_Accidents"].idxmax()
-    rijen = []
-    for ander in eenheden.index:
-        if ander != referentie:
-            rijen.append({"Eenheid": ander, **pipeline.ontleed_verschil(eenheden, referentie, ander)})
-    ontleding = pd.DataFrame(rijen)
-    zelfde_richting = ontleding["Bevolking"] * ontleding["Graad"] >= 0
-    getoond = ontleding[zelfde_richting].copy()
-    getoond["Door minder inwoners"] = getoond["Bevolking"] / getoond["Verschil"] * 100
-    getoond["Door minder ongevallen per inwoner"] = 100 - getoond["Door minder inwoners"]
-    if not getoond.empty:
-        lang = getoond.melt(
-            id_vars="Eenheid",
-            value_vars=["Door minder inwoners", "Door minder ongevallen per inwoner"],
-            var_name="Oorzaak", value_name="Deel",
-        )
-        fig = px.bar(
-            lang, x="Deel", y="Eenheid", color="Oorzaak", barmode="stack", orientation="h",
-            category_orders={"Eenheid": [e for e in eenheden.index if e in set(getoond["Eenheid"])]},
-            color_discrete_map={
-                "Door minder inwoners": KLEUR_BEVOLKING,
-                "Door minder ongevallen per inwoner": KLEUR_GRAAD,
-            },
-            text=lang["Deel"].map(lambda x: fmt_getal(x) + " %"),
-        )
-        fig.update_traces(hovertemplate="%{x:.1f} %<extra>%{fullData.name}</extra>", textposition="inside")
-        fig.update_layout(
-            title=f"Waarom hebben de andere {n['meervoud']} minder fietsongevallen dan {referentie}?",
-            xaxis={"title": "100 % = het hele verschil in aantal fietsongevallen", "range": [0, 100], "ticksuffix": " %"},
-            yaxis={"title": None, "autorange": "reversed"},
-            legend_title_text=None, legend_orientation="h", legend_y=-0.35 if len(getoond) < 6 else -0.15,
-            margin={"t": 50, "b": 20, "l": 10, "r": 10},
-            height=max(300, 90 + 28 * len(getoond)), separators=",.",
-        )
-        st.plotly_chart(fig, width="stretch")
-    voorbeeld = ontleding.loc[ontleding["Verschil"].abs().idxmax()]
-    uitleg = (
-        f"**Maat:** het verschil in aantal fietsongevallen met {referentie} ({n['dit']} met de meeste), "
-        f"opgesplitst in twee oorzaken: (1) {n['dat']} heeft minder inwoners, (2) per inwoner zijn er "
-        "minder fietsongevallen. De twee delen tellen op tot 100 %. Voorbeeld: "
+    jaren = gemeente_jaar["Year"].nunique()
+    punten = eenheden.reset_index(names="Eenheid")
+    punten["Inwoners"] = punten["Total"] / jaren
+    punten["Rol"] = punten["Eenheid"].map(lambda e: referentie if e == referentie else "Andere")
+    ref = punten[punten["Eenheid"] == referentie].iloc[0]
+    fig = px.scatter(
+        punten, x="Inwoners", y="Bike_Rate", size="Bike_Accidents", color="Rol", text="Eenheid",
+        size_max=50, category_orders={"Rol": [referentie, "Andere"]},
+        color_discrete_map={referentie: KLEUR_GRAAD, "Andere": KLEUR_BEVOLKING},
+        custom_data=["Eenheid", "Bike_Accidents"],
     )
-    if voorbeeld["Bevolking"] * voorbeeld["Graad"] >= 0:
-        deel = voorbeeld["Bevolking"] / voorbeeld["Verschil"] * 100
-        uitleg += (
-            f"{voorbeeld['Eenheid']} heeft {fmt_getal(abs(voorbeeld['Verschil']))} fietsongevallen minder dan "
-            f"{referentie}. {fmt_getal(deel)} % daarvan komt doordat er minder inwoners zijn, "
-            f"{fmt_getal(100 - deel)} % doordat er per inwoner minder fietsongevallen zijn. "
-        )
-    else:
-        uitleg += "zie de tabel met cijfers hieronder. "
-    uitleg += (
-        "De delen zijn berekend met het gemiddelde van beide eenheden, zodat het resultaat niet "
-        "afhangt van welke als vertrekpunt dient. Er zijn geen gegevens over hoeveel er gefietst "
-        "wordt: 'per inwoner' is niet 'per gefietste kilometer'."
+    fig.update_traces(
+        textposition="top center",
+        marker={"opacity": 0.75, "line": {"width": 1, "color": "white"}},
+        hovertemplate=(
+            "<b>%{customdata[0]}</b><br>%{x:,.0f} inwoners (per jaar)<br>%{y:.1f} fietsongevallen "
+            "per 100.000 inwoners<br>%{customdata[1]:,.0f} fietsongevallen<extra></extra>"
+        ),
     )
-    st.caption(uitleg)
-    if not zelfde_richting.all():
+    fig.add_vline(x=ref["Inwoners"], line_dash="dash", line_color="gray", opacity=0.6)
+    fig.add_hline(y=ref["Bike_Rate"], line_dash="dash", line_color="gray", opacity=0.6)
+    wie_titel = f"de {top} {n['meervoud']}" if top else f"alle {n['meervoud']}"
+    fig.update_layout(
+        title=f"Meer inwoners of meer ongevallen per inwoner? {wie_titel.capitalize()} naast {referentie}",
+        xaxis={"title": "Inwoners (gemiddeld per jaar)", "rangemode": "tozero", "separatethousands": True},
+        yaxis={"title": "Fietsongevallen per 100.000 inwoners (per jaar)", "rangemode": "tozero"},
+        legend_title_text=None, legend_orientation="h", legend_y=-0.2,
+        margin={"t": 50, "b": 20, "l": 10, "r": 10}, height=560, separators=",.",
+    )
+    st.plotly_chart(fig, width="stretch")
+    st.caption(
+        f"**Maat:** elke bol is {n['dit']}. Links-rechts: het gemiddeld aantal inwoners per jaar. "
+        "Boven-onder: het aantal fietsongevallen per 100.000 inwoners per jaar. De grootte van de bol: "
+        f"het totaal aantal fietsongevallen. De stippellijnen tonen {referentie}, het "
+        f"{keuze.lower()} met de meeste fietsongevallen. Een bol rechts van de verticale lijn heeft meer "
+        "inwoners, een bol boven de horizontale lijn meer fietsongevallen per inwoner. Een grote bol "
+        "betekent veel inwoners, veel ongevallen per inwoner, of allebei. Er zijn geen gegevens over hoeveel "
+        "er gefietst wordt: 'per inwoner' is niet 'per gefietste kilometer'."
+    )
+
+
+GRIJS = "#b8b8b8"
+
+
+def tijd_aantalgrafiek(verdeling, labels: list[str], titel: str, as_titel: str):
+    """Staafdiagram: aantal fietsongevallen per uur of maand."""
+    fig = px.bar(x=labels, y=verdeling["Bike_Accidents"].to_list())
+    fig.update_traces(marker_color=LIJNKLEUR, hovertemplate="%{x}: %{y:,.0f} fietsongevallen<extra></extra>")
+    fig.update_layout(
+        title=titel, xaxis={"title": as_titel, "type": "category"},
+        yaxis={"title": None, "separatethousands": True, "rangemode": "tozero"},
+        margin={"t": 50, "b": 20, "l": 10, "r": 10}, height=340, separators=",.",
+    )
+    return fig
+
+
+def tijd_ernstgrafiek(verdeling, labels: list[str], titel: str, as_titel: str, gemiddeld: float | None):
+    """Staafdiagram: aandeel ernstig per uur of maand. Staven met te weinig fietsongevallen zijn grijs."""
+    genoeg = verdeling["Bike_Accidents"] >= pipeline.MIN_FIETSONGEVALLEN
+    kleuren = [KLEUR_GRAAD if g else GRIJS for g in genoeg]
+    fig = px.bar(x=labels, y=verdeling["Serious_Share"].to_list(), custom_data=[
+        verdeling["Bike_Accidents"].to_list(), verdeling["Serious_Bike_Accidents"].to_list(),
+    ])
+    fig.update_traces(
+        marker_color=kleuren,
+        hovertemplate=(
+            "%{x}: %{y:.1f} % ernstig<br>%{customdata[1]:,.0f} van %{customdata[0]:,.0f} "
+            "fietsongevallen<extra></extra>"
+        ),
+    )
+    if gemiddeld is not None:
+        fig.add_hline(
+            y=gemiddeld, line_dash="dash", line_color="gray",
+            annotation_text=f"gemiddeld {fmt_getal(gemiddeld, 1)} %", annotation_position="top right",
+        )
+    fig.update_layout(
+        title=titel, xaxis={"title": as_titel, "type": "category"},
+        yaxis={"title": None, "ticksuffix": " %", "rangemode": "tozero"},
+        margin={"t": 50, "b": 20, "l": 10, "r": 10}, height=340, separators=",.",
+    )
+    return fig
+
+
+def toon_wanneer(gefilterd, tabellen) -> None:
+    """Wanneer gebeuren fietsongevallen: per uur van de dag en per maand."""
+    for kolom, titel, labels, as_titel in [
+        ("Hour", "uur van de dag", [str(u) for u in range(24)], "Uur van de dag"),
+        ("Month", "maand", MAANDEN, "Maand"),
+    ]:
+        verdeling, onbekend = pipeline.maak_tijdverdeling(gefilterd, tabellen, kolom)
+        totaal = int(verdeling["Bike_Accidents"].sum())
+        st.subheader(f"Per {titel}")
+        if totaal == 0:
+            st.info("Geen fietsongevallen voor deze selectie.")
+            continue
+        gemiddeld = verdeling["Serious_Bike_Accidents"].sum() / totaal * 100
+        links, rechts = st.columns(2)
+        with links:
+            st.plotly_chart(
+                tijd_aantalgrafiek(verdeling, labels, f"Fietsongevallen per {titel}", as_titel),
+                width="stretch",
+            )
+        with rechts:
+            st.plotly_chart(
+                tijd_ernstgrafiek(verdeling, labels, f"Aandeel ernstig per {titel} (%)", as_titel, gemiddeld),
+                width="stretch",
+            )
+        piek = verdeling["Bike_Accidents"].idxmax()
+        piek_tekst = f"{piek} uur" if kolom == "Hour" else MAANDEN[piek - 1]
+        rustig = verdeling["Bike_Accidents"].idxmin()
+        rustig_tekst = f"{rustig} uur" if kolom == "Hour" else MAANDEN[rustig - 1]
+        zwak = int((verdeling["Bike_Accidents"] < pipeline.MIN_FIETSONGEVALLEN).sum())
         st.caption(
-            f"Niet getoond ({int((~zelfde_richting).sum())}): "
-            + ", ".join(ontleding.loc[~zelfde_richting, "Eenheid"])
-            + ". Daar werken de twee oorzaken in tegengestelde richting (bijvoorbeeld meer inwoners "
-            "maar toch minder fietsongevallen), zodat percentages niet zinvol zijn."
+            f"**Maat links:** aantal fietsongevallen (met doden of gewonden) per {titel}, over de gekozen jaren "
+            f"samen. Het meeste: {piek_tekst} ({fmt_getal(verdeling['Bike_Accidents'].max())}); het minste: "
+            f"{rustig_tekst} ({fmt_getal(verdeling['Bike_Accidents'].min())}). Het zegt niets over het risico "
+            "per fietser: op drukke momenten fietsen er ook meer mensen. "
+            f"**Maat rechts:** ernstige fietsongevallen als % van de fietsongevallen in dat {titel}. De stippellijn is "
+            f"het gemiddelde ({fmt_getal(gemiddeld, 1)} %). "
+            + (
+                f"Grijze staven hebben minder dan {pipeline.MIN_FIETSONGEVALLEN} fietsongevallen; "
+                "daar schommelt het percentage sterk door toeval. " if zwak else ""
+            )
+            + "Als je met de muis over een staaf gaat, zie je het aantal waarop het percentage steunt."
         )
-    with st.expander(f"Cijfers per {keuze.lower()}"):
-        tabel = eenheden.reset_index(names=keuze)[[keuze, "Total", "Bike_Accidents", "Bike_Rate"]].rename(
-            columns={
-                "Total": "Inwoners (som over de gekozen jaren)",
-                "Bike_Accidents": "Fietsongevallen",
-                "Bike_Rate": "Per 100.000 inwoners",
-            }
-        )
-        tabel["Per 100.000 inwoners"] = tabel["Per 100.000 inwoners"].map(fmt_graad)
-        st.dataframe(formatteer_tabel(tabel), hide_index=True)
+        if onbekend:
+            st.caption(f"{fmt_getal(onbekend)} fietsongevallen met onbekend uur staan niet in deze grafieken.")
 
 
 def toon_trend(gemeente_jaar, maandtelling) -> None:
@@ -483,41 +643,52 @@ def toon_trend(gemeente_jaar, maandtelling) -> None:
         st.dataframe(formatteer_tabel(tabel), hide_index=True)
 
 
+def toon_datakwaliteit(tabellen, controles) -> None:
+    """Controles op de volledige data; de filters gelden hier niet."""
+    st.caption("Dit tabblad gaat over de volledige data en volgt de filters niet.")
+    st.write(
+        f"Ingelezen: {fmt_getal(controles['Ongevallen ingelezen'])} ongevallen; "
+        f"waarvan {fmt_getal(pipeline.aantal_autosnelweg(tabellen))} op de autosnelweg "
+        "(standaard niet getoond). Er gaan geen ongevallen verloren."
+    )
+
+    st.subheader("Bevolking: controle per jaar")
+    st.caption("De som van de gemeenten moet gelijk zijn aan de rij 'België' van dat jaar.")
+    st.dataframe(formatteer_tabel(controles["Controle bevolking"].reset_index()), hide_index=True)
+
+    st.subheader("NIS-codes die maar in één bestand voorkomen")
+    verschillen = controles["Datakwaliteit NIS"]
+    if verschillen.empty:
+        st.write("Alle NIS-codes komen in elk jaar in beide bestanden voor.")
+    else:
+        st.caption(
+            "'Alleen in bevolking': de gemeente had dat jaar geen ongevallen (op geen enkel wegtype) "
+            "en krijgt 0 ongevallen (niet 'ontbrekend'). 'Alleen in ongevallen': er is geen bevolking "
+            "voor die code."
+        )
+        st.dataframe(formatteer_tabel(verschillen), hide_index=True)
+
+
+(
+    tab_trend, tab_kaart, tab_waar, tab_wanneer, tab_omstandigheden, tab_tegenpartij, tab_kwaliteit,
+) = st.tabs(["Trend", "Kaart", "Waar", "Wanneer", "Omstandigheden", "Tegenpartij", "Datakwaliteit"])
+with tab_kwaliteit:
+    toon_datakwaliteit(tabellen, controles)
+
 if not gefilterd.empty:
     gemeente_jaar = pipeline.maak_gemeente_jaar(gefilterd, tabellen, keuzes)
-    tab_trend, tab_kaart, tab_waar, tab_wanneer, tab_omstandigheden, tab_tegenpartij = st.tabs(
-        ["Trend", "Kaart", "Waar", "Wanneer", "Omstandigheden", "Tegenpartij"]
-    )
     with tab_trend:
         toon_trend(gemeente_jaar, pipeline.maak_maandtelling(gefilterd, tabellen))
     with tab_kaart:
         toon_kaart(gefilterd, tabellen)
     with tab_waar:
         toon_vergelijking(gemeente_jaar)
-    for tab_nog_niet in ( tab_wanneer, tab_omstandigheden, tab_tegenpartij):
+    with tab_wanneer:
+        toon_wanneer(gefilterd, tabellen)
+    for tab_nog_niet in (tab_omstandigheden, tab_tegenpartij):
         with tab_nog_niet:
             st.caption("Dit onderdeel komt in een volgende stap.")
-
-st.header("Datakwaliteit")
-st.caption("Deze sectie gaat over de volledige data en volgt de filters niet.")
-st.write(
-    f"Ingelezen: {fmt_getal(controles['Ongevallen ingelezen'])} ongevallen; "
-    f"waarvan {fmt_getal(pipeline.aantal_autosnelweg(tabellen))} op de autosnelweg "
-    "(standaard niet getoond). Er gaan geen ongevallen verloren."
-)
-
-st.subheader("Bevolking: controle per jaar")
-st.caption("De som van de gemeenten moet gelijk zijn aan de rij 'België' van dat jaar.")
-st.dataframe(formatteer_tabel(controles["Controle bevolking"].reset_index()), hide_index=True)
-
-st.subheader("NIS-codes die maar in één bestand voorkomen")
-verschillen = controles["Datakwaliteit NIS"]
-if verschillen.empty:
-    st.write("Alle NIS-codes komen in elk jaar in beide bestanden voor.")
 else:
-    st.caption(
-        "'Alleen in bevolking': de gemeente had dat jaar geen ongevallen (op geen enkel wegtype) "
-        "en krijgt 0 ongevallen (niet 'ontbrekend'). 'Alleen in ongevallen': er is geen bevolking "
-        "voor die code."
-    )
-    st.dataframe(formatteer_tabel(verschillen), hide_index=True)
+    for tab_leeg in (tab_trend, tab_kaart, tab_waar, tab_wanneer, tab_omstandigheden, tab_tegenpartij):
+        with tab_leeg:
+            st.caption("Geen ongevallen om te tonen (zie de melding bovenaan).")

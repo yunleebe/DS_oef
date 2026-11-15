@@ -86,8 +86,9 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
 - **`Gemeente_Jaar`** (bevolking en tellingen per gemeente en jaar) wordt niet opgeslagen, maar per
   selectie berekend (`maak_gemeente_jaar`), zodat de tellingen alle filters volgen, ook Wegtype.
 - **Gemeentenamen** in de app komen uit `Dim_NIS` (ongevallenbestand).
-- De app heeft een sectie **"Datakwaliteit"** met NIS-codes (per jaar) die maar in één van de
-  twee bestanden voorkomen.
+- De app heeft een eigen tabblad **"Datakwaliteit"** (het laatste tabblad, geen sectie onder de
+  andere tabbladen) met de controle van de bevolking per jaar en de NIS-codes (per jaar) die maar
+  in één van de twee bestanden voorkomen. Het gaat over de volledige data en volgt de filters niet.
 
 ## Visuals
 
