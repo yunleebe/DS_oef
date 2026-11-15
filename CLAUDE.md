@@ -8,7 +8,7 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
 1. **Structuur**: `app.py` is enkel de interface. De datavoorbereiding staat in `pipeline.py`,
    met aparte, benoemde functies (één per stap) en **geen Streamlit-imports**.
 2. **`requirements.txt`** bevat enkel wat de app importeert, met versienummers
-   (nu: streamlit, pandas, openpyxl, pyproj, pyarrow).
+   (nu: streamlit, pandas, openpyxl, pyproj, pyarrow, plotly).
 3. **Nieuw package nodig?** Staat het niet in `syntra-ds`: vraag het EERST aan Yun, met reden en
    alternatief, en zet het niet in `requirements.txt`. Installeer niets zonder OK.
    Staat het wel in `syntra-ds` en heeft de app het nodig, dan mag het zonder vragen in

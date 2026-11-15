@@ -688,7 +688,7 @@ def toon_omstandigheid(
 
     uitleg = (
         f"**Maat links:** aantal fietsongevallen (en % van alle {fmt_getal(totaal)}) per {woord}. Dit zegt niets over "
-        f"het risico per fietser: {vaak_voorkomen}. **Maat rechts:** ernstige fietsongevallen als % van de fietsongevallen in die "
+        f"het risico per fietser{': ' + vaak_voorkomen if vaak_voorkomen else ''}. **Maat rechts:** ernstige fietsongevallen als % van de fietsongevallen in die "
         f"categorie; de stippellijn is het gemiddelde ({fmt_getal(gemiddeld, 1)} %). "
     )
     if not genoeg.all():
@@ -716,8 +716,8 @@ def toon_omstandigheid(
             if o["Serious_Share"] < gemiddeld else ""
         )
         st.caption(
-            f"**Onbekend** ({fmt_pct(o['Share'])} van de fietsongevallen) betekent dat {onbekend_betekent}; "
-            f"het aandeel ernstig is daar {fmt_pct(o['Serious_Share'])}.{verklaring}"
+            f"**Onbekend** ({fmt_pct(o['Share'])} van de fietsongevallen) betekent dat {onbekend_betekent}. "
+            f"Het aandeel ernstig is daar {fmt_pct(o['Serious_Share'])}.{verklaring}"
         )
     if filternaam == "Road Type":
         st.caption(
@@ -731,9 +731,11 @@ def toon_tegenpartij(gefilterd, tabellen) -> None:
     data = pipeline.maak_tegenpartij(gefilterd, tabellen)
     toon_omstandigheid(
         gefilterd, tabellen, "Tegenpartij", None, "tegenpartij", data=data,
-        vaak_voorkomen="een tegenpartij die vaak voorkomt (zoals een personenauto) zit ook in de meeste ongevallen, "
-        "omdat er veel meer personenauto's dan vrachtwagens rondrijden",
-        onbekend_betekent="de tegenpartij niet is ingevuld",
+        vaak_voorkomen="",
+        onbekend_betekent=(
+            "de tegenpartij in de data als onbekend is gecodeerd. De data zegt niet of dat een eenzijdig ongeval "
+            "is, een tegenpartij die niet geïdentificeerd werd (bijvoorbeeld vluchtmisdrijf) of een invulfout"
+        ),
     )
     st.caption(
         "**Tegenpartij** is de weggebruiker (1 of 2) die niet de fiets is. Zijn beide partijen een fiets, dan staat "

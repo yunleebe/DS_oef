@@ -361,6 +361,9 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
   verwarrend. Nu is het een eigen tabblad rechts van Tegenpartij, met dezelfde inhoud (ingelezen
   ongevallen, controle bevolking per jaar, NIS-codes in één bestand). Het tabblad blijft ook bij een
   lege selectie beschikbaar. `CLAUDE.md` is aangepast.
+- **Volgorde van de balken:** van hoog naar laag op aantal fietsongevallen (grootste bovenaan).
+  Een eerste versie stond omgekeerd, omdat plotly bij horizontale balken de eerste categorie al
+  bovenaan zet en ik dat nog eens omkeerde.
 - **Tabblad Omstandigheden (`maak_omstandigheid`):** vijf sub-tabbladen: Licht, Weer, Wegdek,
   Kruispunt, Wegtype. Elk heeft links het aantal fietsongevallen (met %) per categorie en rechts het
   aandeel ernstig met het gemiddelde (10,9 %) als stippellijn; staven met minder dan 30 fietsongevallen
@@ -383,6 +386,20 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
   1.358 (28,4 %). Onafhankelijk nagerekend voor fiets + personenauto. Het aandeel ernstig zegt niet
   wie de schuld heeft en houdt geen rekening met snelheid of massa. `toon_omstandigheid` wordt
   hergebruikt, met eigen zinnen voor de tegenpartij.
+- **Zin over personenauto's geschrapt (Tegenpartij):** Yun liet de zin "een tegenpartij die vaak voorkomt
+  (zoals een personenauto) zit ook in de meeste ongevallen, omdat er veel meer personenauto's dan
+  vrachtwagens rondrijden" verwijderen. Reden: de data bevat geen verkeersintensiteit, dus de
+  "omdat"-uitleg kan de app niet staven, en de vaste tekst volgde de filters niet.
+- **Filter Jaar aflopend:** Yun wil in de zijbalk eerst de recente jaren zien (2024 bovenaan). Reden:
+  de recentste jaren zijn meestal het meest relevant. Enkel de volgorde van de keuzelijst verandert
+  (`filter_opties`); de gekozen jaren worden alleen met `isin` gebruikt, dus de cijfers blijven gelijk.
+- **Tegenpartij "Onbekend" blijft Onbekend:** Yun vroeg of de 530 fietsongevallen waarbij de andere
+  partij code 99 "Onbekend" heeft (242 met Type1 onbekend + Type2 fiets, 288 omgekeerd; 0,7 % van de
+  71.881 fietsongevallen) als eenzijdig ongeval moesten tellen. Antwoord: nee. De data zegt niet of
+  het een eenzijdig ongeval is, een niet-geïdentificeerde tegenpartij (bijvoorbeeld vluchtmisdrijf) of
+  een invulfout. Reden: 7,2 % van deze ongevallen is ernstig tegenover 17-18 % bij eenzijdige
+  ongevallen, en het aantal groeit van 7 (2017) naar 159 (2024), wat op een andere registratie wijst.
+  De zin onder de grafiek legt dit nu uit. Bij fietsongevallen is geen enkel Type1 of Type2 leeg.
 - **Heatmap geschrapt en klaarzetten voor Streamlit Cloud:** Yun vond de heatmap niet meer nodig
   ("het is al voldoende om te kunnen analyseren en presenteren"); de ranglijst met trend en de
   sparkline volstaan. Voor de publieke URL: repo `yunleebe/DS_oef` (app.py in de hoofdmap), Python 3.13
@@ -390,9 +407,6 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
   openpyxl 3.1.5, pyproj 3.7.2, pyarrow 24.0.0, plotly 6.9.0). Gesimuleerd zonder Excel (enkel
   `app.py`, `pipeline.py` en de 14 parquet-bestanden): de app start in 4,6 seconden zonder fouten.
   De README bevat de stappen om te publiceren.
-- **Volgorde van de balken:** van hoog naar laag op aantal fietsongevallen (grootste bovenaan).
-  Een eerste versie stond omgekeerd, omdat plotly bij horizontale balken de eerste categorie al
-  bovenaan zet en ik dat nog eens omkeerde.
 - **Stap 1 gebouwd:** tabbladen en de trendgrafieken (`maak_jaartrend` in `pipeline.py`),
   gecontroleerd met een onafhankelijke pandas-telling.
 - **Derde trendgrafiek (aandeel ernstig):** Yun vroeg of de piek in 2022 (graad 88,5 per 100.000

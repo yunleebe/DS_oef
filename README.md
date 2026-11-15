@@ -46,9 +46,11 @@ uit). Daaronder zeven tabbladen:
 | Tegenpartij | met wie de fietser botst |
 | Datakwaliteit | controles op de bevolking en de NIS-codes |
 
-## Publiceren op Streamlit Community Cloud
+## Publiceren of opnieuw deployen op Streamlit Community Cloud
 
-De app draait op Cloud zonder de Excel-bestanden: ze leest `data/parquet/` (in git).
+De app staat online op <https://yunleebe.streamlit.app/>. Ze draait op Cloud zonder de
+Excel-bestanden: ze leest `data/parquet/` (in git). Onderstaande stappen zijn nodig om de app
+opnieuw te deployen, bijvoorbeeld na een verwijdering.
 
 1. Zorg dat alle wijzigingen gecommit en gepusht zijn, ook `data/parquet/`.
 2. Ga naar <https://share.streamlit.io>, log in met GitHub en kies **Create app** > *Deploy a public app from GitHub*.
@@ -61,5 +63,5 @@ commit ze samen met de code. Cloud herstart de app na elke push automatisch.
 
 ## Status
 
-De datavoorbereiding, het datamodel en alle visuals werken; de app is klaar om te publiceren.
+De datavoorbereiding, het datamodel en alle visuals werken; de app is gepubliceerd op <https://yunleebe.streamlit.app/>.
 Tests schreven we niet (zie het beslissingslogboek, beslissing 20).

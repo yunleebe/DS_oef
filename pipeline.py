@@ -441,7 +441,7 @@ def filter_opties(tabellen: dict[str, pd.DataFrame], keuzes: dict[str, list]) ->
     in_regio = selecteer_gemeenten(dim_nis, {"Region": keuzes.get("Region")})
     in_provincie = selecteer_gemeenten(in_regio, {"Province": keuzes.get("Province")})
     opties = {
-        "Year": sorted(tabellen["Fact_Accidents"]["Year"].unique().tolist()),
+        "Year": sorted(tabellen["Fact_Accidents"]["Year"].unique().tolist(), reverse=True),
         "Region": sorted(dim_nis["Region"].unique()),
         "Province": sorted(in_regio["Province"].unique()),
         "Municipality": sorted(in_provincie["Municipality"].unique()),
