@@ -708,6 +708,43 @@ def maak_tijdverdeling(
     return resultaat, onbekend
 
 
+OVERIGE_LABEL = "Overige"
+ONBEKEND_LABEL = "Onbekend"
+
+
+def maak_omstandigheid(
+    gefilterd: pd.DataFrame,
+    tabellen: dict[str, pd.DataFrame],
+    filternaam: str,
+    overige_onder: float | None = None,
+) -> pd.DataFrame:
+    """Fietsongevallen per categorie van een omstandigheid (`filternaam` uit FILTER_DIMENSIES, bv.
+    "Weather", "Light Condition", "Road Condition", "Crossway", "Road Type").
+
+    Kolommen: Bike_Accidents, Serious_Bike_Accidents, Share (% van alle fietsongevallen), Serious_Share
+    (% ernstig). Gesorteerd van groot naar klein. Met `overige_onder` (in %) worden categorieën met een
+    kleiner aandeel samengevoegd tot "Overige", die onderaan staat; "Onbekend" blijft apart."""
+    dimensie, label_kolom, id_kolom, fact_kolommen = FILTER_DIMENSIES[filternaam]
+    fietsen = filter_fietsongevallen(gefilterd, tabellen["Dim_Road_User"])
+    ernstig = _is_ernstig(fietsen, tabellen["Dim_Class_Accidents"])
+    labels = tabellen[dimensie].set_index(id_kolom)[label_kolom]
+    categorie = fietsen[fact_kolommen[0]].map(labels).fillna(ONBEKEND_LABEL)
+    totaal = len(fietsen)
+    if overige_onder is not None and totaal:
+        aandeel = categorie.map(categorie.value_counts()) / totaal * 100
+        categorie = categorie.where((aandeel >= overige_onder) | (categorie == ONBEKEND_LABEL), OVERIGE_LABEL)
+    resultaat = pd.DataFrame({
+        "Bike_Accidents": categorie.groupby(categorie).size(),
+        "Serious_Bike_Accidents": ernstig.groupby(categorie).sum(),
+    })
+    resultaat["Share"] = resultaat["Bike_Accidents"] / totaal * 100 if totaal else float("nan")
+    resultaat["Serious_Share"] = resultaat["Serious_Bike_Accidents"] / resultaat["Bike_Accidents"] * 100
+    resultaat = resultaat.sort_values("Bike_Accidents", ascending=False)
+    if OVERIGE_LABEL in resultaat.index:
+        resultaat = pd.concat([resultaat.drop(OVERIGE_LABEL), resultaat.loc[[OVERIGE_LABEL]]])
+    return resultaat
+
+
 def aantal_autosnelweg(tabellen: dict[str, pd.DataFrame]) -> int:
     """Aantal ongevallen op de autosnelweg in Fact_Accidents (alle jaren en gemeenten)."""
     dim = tabellen["Dim_Road_Type"]

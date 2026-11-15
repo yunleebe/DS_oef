@@ -319,8 +319,10 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
   100+ %-delen onduidelijk ("zo een grafiek heb ik nergens gezien"). Nu is elke eenheid een bol:
   links-rechts het gemiddeld aantal inwoners per jaar, boven-onder de fietsongevallen per 100.000
   inwoners, grootte = aantal fietsongevallen; stippellijnen tonen de eenheid met de meeste
-  fietsongevallen. De opsplitsing in "door inwoners" en "door graad" staat als tabel (in
-  absolute aantallen) in een uitklapbaar blok. `ontleed_verschil` blijft bestaan voor die tabel.
+  fietsongevallen. De opsplitsing in "door inwoners" en "door graad" stond eerst als tabel in een
+  uitklapbaar blok, naast een blok "Cijfers per gewest/provincie/gemeente". Yun vond beide
+  overbodig ("weinig inzicht"): de cijfers staan al in de ranglijst en de bolgrafiek. Beide blokken
+  en de functie `ontleed_verschil` zijn verwijderd.
 - **Is Knokke-Heist de gevaarlijkste gemeente? (vraag van Yun):** Knokke-Heist heeft de hoogste
   graad (232,9 per 100.000 inwoners; 614 fietsongevallen; Belgisch gemiddelde 77,8), maar "gevaarlijkst"
   volgt daar niet uit: (1) over de jaren wisselt de nummer 1 (Knokke-Heist alleen in 2024; rang 2–7 in
@@ -359,6 +361,17 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
   verwarrend. Nu is het een eigen tabblad rechts van Tegenpartij, met dezelfde inhoud (ingelezen
   ongevallen, controle bevolking per jaar, NIS-codes in één bestand). Het tabblad blijft ook bij een
   lege selectie beschikbaar. `CLAUDE.md` is aangepast.
+- **Tabblad Omstandigheden (`maak_omstandigheid`):** vijf sub-tabbladen: Licht, Weer, Wegdek,
+  Kruispunt, Wegtype. Elk heeft links het aantal fietsongevallen (met %) per categorie en rechts het
+  aandeel ernstig met het gemiddelde (10,9 %) als stippellijn; staven met minder dan 30 fietsongevallen
+  zijn grijs en de tooltip toont het aantal. Weer én Wegdek: categorieën onder 1 % worden
+  "Overige" (de leden staan onder de grafiek); Wegdek erbij omdat het net als Weer veel gecombineerde
+  categorieën heeft ("Droog+Proper"). Licht krijgt geen "Overige": "Nacht, geen openbare verlichting"
+  is 0,98 % maar heeft 16,1 % ernstige ongevallen. "Onbekend" blijft overal apart. Opmerking: bij
+  Weer (9,2 %), Wegdek (8,6 %) en Licht (2,9 %) is het aandeel ernstig bij "Onbekend" laag (6,2 %,
+  5,7 % en 5,4 %); een mogelijke verklaring is dat lichtere ongevallen minder volledig ingevuld
+  worden (niet in de data bevestigd). Kruispunt: 43,4 % op een kruispunt, 9,7 % ernstig; buiten een
+  kruispunt 11,8 %. Gecontroleerd: alle vijf tellen op tot 71.749 (ernstig 7.829).
 - **Volgorde van de balken:** van hoog naar laag op aantal fietsongevallen (grootste bovenaan).
   Een eerste versie stond omgekeerd, omdat plotly bij horizontale balken de eerste categorie al
   bovenaan zet en ik dat nog eens omkeerde.

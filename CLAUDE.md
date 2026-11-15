@@ -122,11 +122,16 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
   zonder coördinaten per provincie en jaar; een waarschuwing verschijnt als de gekozen jaren over
   2022 lopen.
 - **Vergelijking per niveau (tabblad Waar):** keuze Gewest, Provincie of Gemeente; titels en
-  maatzinnen volgen de keuze. Bij Gemeente enkel de top 20 op aantal fietsongevallen, met aandelen
-  berekend over alle gemeenten.
-- **Verschil opsplitsen:** het verschil met de eenheid met de meeste fietsongevallen wordt gesplitst
-  in "door minder inwoners" en "door minder ongevallen per inwoner", berekend met het gemiddelde van
-  beide volgordes (`ontleed_verschil`). Werken de twee oorzaken in tegengestelde richting, dan geen
-  percentage maar een vermelding onder de grafiek.
+  maatzinnen volgen de keuze. Bovenaan staat de ranglijst. "Toon de top N gemeenten volgens" (met
+  volgorde, aantal en minimum) bestaat enkel bij Gemeente; bij Gewest en Provincie staat alles in de
+  tabel, op aantal fietsongevallen. Daaronder: het aandeel van de bevolking tegenover het aandeel
+  van de fietsongevallen, en een bolgrafiek (x = inwoners, y = fietsongevallen per 100.000 inwoners,
+  grootte = fietsongevallen) met de eenheid met de meeste fietsongevallen als referentie. Bij
+  Gemeente enkel de top 20 op aantal fietsongevallen, met aandelen berekend over alle gemeenten.
+- **Ranglijst:** de graad heeft een ruwe 95 %-marge, en onder de tabel staat een melding als de marge
+  van nummer 1 overlapt met andere in de lijst. Het minimum van 30 fietsongevallen geldt enkel bij
+  een verhouding (graad, aandelen, trend); bij sorteren op een aantal staat bij kleine eenheden
+  "te weinig data" in de verhoudingskolommen. Geen losse tabellen met "cijfers" of "opsplitsing"
+  naast de grafieken: die gaven geen extra inzicht.
 - **Maatzinnen:** concreet en eenvoudig, met één voorbeeld met echte cijfers; geen herhaalde,
   bijna gelijke zinnen per eenheid.

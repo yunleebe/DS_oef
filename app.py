@@ -602,6 +602,116 @@ def toon_wanneer(gefilterd, tabellen) -> None:
             st.caption(f"{fmt_getal(onbekend)} fietsongevallen met onbekend uur staan niet in deze grafieken.")
 
 
+# (tabtekst, filternaam, "Overige" onder dit %, zin over de categorieën)
+OMSTANDIGHEDEN = [
+    ("Licht", "Light Condition", None, "lichtomstandigheid"),
+    ("Weer", "Weather", 1.0, "weersomstandigheid"),
+    ("Wegdek", "Road Condition", 1.0, "toestand van het wegdek"),
+    ("Kruispunt", "Crossway", None, "plaats (op of buiten een kruispunt)"),
+    ("Wegtype", "Road Type", None, "wegtype"),
+]
+
+
+def toon_omstandigheid(gefilterd, tabellen, filternaam: str, overige_onder, woord: str) -> None:
+    """Fietsongevallen per categorie van één omstandigheid: aantal, en aandeel ernstig."""
+    data = pipeline.maak_omstandigheid(gefilterd, tabellen, filternaam, overige_onder)
+    if data.empty:
+        st.info("Geen fietsongevallen voor deze selectie.")
+        return
+    totaal = int(data["Bike_Accidents"].sum())
+    gemiddeld = data["Serious_Bike_Accidents"].sum() / totaal * 100
+    volgorde = list(data.index)
+    genoeg = data["Bike_Accidents"] >= pipeline.MIN_FIETSONGEVALLEN
+    hoogte = max(260, 80 + 34 * len(data))
+
+    links, rechts = st.columns(2)
+    fig = px.bar(
+        x=data["Bike_Accidents"].to_list(), y=volgorde, orientation="h",
+        category_orders={"y": volgorde},
+        text=[f"{fmt_getal(n)} ({fmt_pct(s)})" for n, s in zip(data["Bike_Accidents"], data["Share"])],
+    )
+    fig.update_traces(
+        marker_color=LIJNKLEUR, textposition="outside", cliponaxis=False,
+        hovertemplate="%{y}: %{x:,.0f} fietsongevallen<extra></extra>",
+    )
+    fig.update_layout(
+        title=f"Fietsongevallen per {woord}",
+        xaxis={"title": None, "separatethousands": True, "range": [0, data["Bike_Accidents"].max() * 1.35]},
+        yaxis={"title": None}, margin={"t": 50, "b": 20, "l": 10, "r": 10}, height=hoogte, separators=",.",
+    )
+    links.plotly_chart(fig, width="stretch")
+
+    fig = px.bar(
+        x=data["Serious_Share"].to_list(), y=volgorde, orientation="h",
+        category_orders={"y": volgorde},
+        custom_data=[data["Bike_Accidents"].to_list(), data["Serious_Bike_Accidents"].to_list()],
+        text=[fmt_pct(s) for s in data["Serious_Share"]],
+    )
+    fig.update_traces(
+        marker_color=[KLEUR_GRAAD if g else GRIJS for g in genoeg], textposition="outside", cliponaxis=False,
+        hovertemplate=(
+            "%{y}: %{x:.1f} % ernstig<br>%{customdata[1]:,.0f} van %{customdata[0]:,.0f} "
+            "fietsongevallen<extra></extra>"
+        ),
+    )
+    fig.add_vline(
+        x=gemiddeld, line_dash="dash", line_color="gray",
+        annotation_text=f"gemiddeld {fmt_getal(gemiddeld, 1)} %", annotation_position="top",
+    )
+    fig.update_layout(
+        title=f"Aandeel ernstig per {woord} (%)",
+        xaxis={"title": None, "ticksuffix": " %", "range": [0, max(data["Serious_Share"].max(), gemiddeld) * 1.3]},
+        yaxis={"title": None}, margin={"t": 50, "b": 20, "l": 10, "r": 10}, height=hoogte, separators=",.",
+    )
+    rechts.plotly_chart(fig, width="stretch")
+
+    uitleg = (
+        f"**Maat links:** aantal fietsongevallen (en % van alle {fmt_getal(totaal)}) per {woord}. Dit zegt niets over "
+        "het risico per fietser: bij een omstandigheid die vaak voorkomt (zoals droog weer of daglicht) gebeuren "
+        "ook de meeste ongevallen. **Maat rechts:** ernstige fietsongevallen als % van de fietsongevallen in die "
+        f"categorie; de stippellijn is het gemiddelde ({fmt_getal(gemiddeld, 1)} %). "
+    )
+    if not genoeg.all():
+        uitleg += (
+            f"Grijze staven hebben minder dan {pipeline.MIN_FIETSONGEVALLEN} fietsongevallen: daar schommelt het "
+            "percentage sterk door toeval. "
+        )
+    uitleg += (
+        "Het aandeel ernstig zegt niet waarom: de data bevat bijvoorbeeld geen snelheid of alcohol. "
+        "Een hoger aandeel kan ook komen doordat er in die omstandigheid minder (lichte) ongevallen geregistreerd worden."
+    )
+    st.caption(uitleg)
+
+    if overige_onder is not None and pipeline.OVERIGE_LABEL in data.index:
+        zonder = pipeline.maak_omstandigheid(gefilterd, tabellen, filternaam, None)
+        leden = [c for c in zonder.index if c not in data.index]
+        st.caption(
+            f"**Overige** bevat de {len(leden)} categorieën met minder dan {fmt_getal(overige_onder, 0)} % van de "
+            f"fietsongevallen: {', '.join(leden)}."
+        )
+    if pipeline.ONBEKEND_LABEL in data.index and data.loc[pipeline.ONBEKEND_LABEL, "Bike_Accidents"] >= pipeline.MIN_FIETSONGEVALLEN:
+        o = data.loc[pipeline.ONBEKEND_LABEL]
+        verklaring = (
+            " Een mogelijke verklaring is dat lichtere ongevallen minder volledig worden ingevuld; dat staat niet in de data."
+            if o["Serious_Share"] < gemiddeld else ""
+        )
+        st.caption(
+            f"**Onbekend** ({fmt_pct(o['Share'])} van de fietsongevallen) betekent dat de omstandigheid niet is "
+            f"ingevuld; het aandeel ernstig is daar {fmt_pct(o['Serious_Share'])}.{verklaring}"
+        )
+    if filternaam == "Road Type":
+        st.caption(
+            "De autosnelweg staat standaard uit (zie de melding bovenaan); selecteer ze in de zijbalk om ze mee te rekenen."
+        )
+
+
+def toon_omstandigheden(gefilterd, tabellen) -> None:
+    sub = st.tabs([tekst for tekst, *_ in OMSTANDIGHEDEN])
+    for tab, (_, filternaam, overige_onder, woord) in zip(sub, OMSTANDIGHEDEN):
+        with tab:
+            toon_omstandigheid(gefilterd, tabellen, filternaam, overige_onder, woord)
+
+
 def toon_trend(gemeente_jaar, maandtelling) -> None:
     per_jaar = pipeline.maak_jaartrend(gemeente_jaar)
     links, midden, rechts = st.columns(3)
@@ -685,9 +795,10 @@ if not gefilterd.empty:
         toon_vergelijking(gemeente_jaar)
     with tab_wanneer:
         toon_wanneer(gefilterd, tabellen)
-    for tab_nog_niet in (tab_omstandigheden, tab_tegenpartij):
-        with tab_nog_niet:
-            st.caption("Dit onderdeel komt in een volgende stap.")
+    with tab_omstandigheden:
+        toon_omstandigheden(gefilterd, tabellen)
+    with tab_tegenpartij:
+        st.caption("Dit onderdeel komt in een volgende stap.")
 else:
     for tab_leeg in (tab_trend, tab_kaart, tab_waar, tab_wanneer, tab_omstandigheden, tab_tegenpartij):
         with tab_leeg:
