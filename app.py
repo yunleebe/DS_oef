@@ -27,20 +27,24 @@ st.markdown(
     [data-testid="stCaptionContainer"] p,
     [data-testid="stCaptionContainer"] li { font-size: 1rem; color: inherit; opacity: 0.85; }
     /* Tabbladen als "pillen": groter, met ruimte ertussen; het gekozen tabblad is blauw gevuld. */
-    [data-baseweb="tab-list"] { gap: 0.6rem; padding: 0.25rem 0 0.5rem 0; }
-    [data-baseweb="tab-highlight"], [data-baseweb="tab-border"] { display: none; }
-    button[data-baseweb="tab"] {
-        padding: 0.55rem 1.25rem; border-radius: 999px; height: auto;
+    [data-testid="stTabs"] [role="tablist"] { gap: 0.6rem; padding: 0.25rem 0.25rem 0.6rem 0.25rem; }
+    [data-testid="stTabs"] [role="tablist"] button[data-testid="stTab"] {
+        height: auto; padding: 0.55rem 1.25rem; border-radius: 999px;
         background: rgba(42, 111, 219, 0.08); border: 1px solid rgba(42, 111, 219, 0.25);
         transition: background 0.15s, transform 0.15s;
     }
-    button[data-baseweb="tab"] p { font-size: 1.15rem; font-weight: 600; }
-    button[data-baseweb="tab"]:hover { background: rgba(42, 111, 219, 0.18); transform: translateY(-1px); }
-    button[data-baseweb="tab"][aria-selected="true"] { background: #2a6fdb; border-color: #2a6fdb; }
-    button[data-baseweb="tab"][aria-selected="true"] p { color: #ffffff; }
+    [data-testid="stTabs"] [role="tablist"] button[data-testid="stTab"] p { font-size: 1.15rem; font-weight: 600; }
+    [data-testid="stTabs"] [role="tablist"] button[data-testid="stTab"] .react-aria-SelectionIndicator { display: none; }
+    [data-testid="stTabs"] [role="tablist"] button[data-testid="stTab"][data-hovered] {
+        background: rgba(42, 111, 219, 0.18); transform: translateY(-1px);
+    }
+    [data-testid="stTabs"] [role="tablist"] button[data-testid="stTab"][aria-selected="true"] {
+        background: #2a6fdb; border-color: #2a6fdb;
+    }
+    [data-testid="stTabs"] [role="tablist"] button[data-testid="stTab"][aria-selected="true"] p { color: #ffffff; }
     /* Sub-tabbladen (Omstandigheden) iets kleiner, zodat het onderscheid met de hoofdtabbladen blijft. */
-    [data-testid="stTabs"] [data-testid="stTabs"] button[data-baseweb="tab"] { padding: 0.35rem 1rem; }
-    [data-testid="stTabs"] [data-testid="stTabs"] button[data-baseweb="tab"] p { font-size: 1rem; }
+    [data-testid="stTabs"] [data-testid="stTabs"] [role="tablist"] button[data-testid="stTab"] { padding: 0.35rem 1rem; }
+    [data-testid="stTabs"] [data-testid="stTabs"] [role="tablist"] button[data-testid="stTab"] p { font-size: 1rem; }
     </style>
     """,
     unsafe_allow_html=True,
