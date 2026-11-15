@@ -133,5 +133,17 @@ talrijkst en het ernstigst (gemeente / provincie / gewest), en is dat veranderd 
   een verhouding (graad, aandelen, trend); bij sorteren op een aantal staat bij kleine eenheden
   "te weinig data" in de verhoudingskolommen. Geen losse tabellen met "cijfers" of "opsplitsing"
   naast de grafieken: die gaven geen extra inzicht.
+- **Wanneer:** per uur van de dag en per maand (de data heeft geen weekdag), telkens het aantal en
+  het aandeel ernstig met het gemiddelde als stippellijn.
+- **Omstandigheden:** vijf sub-tabbladen: Licht, Weer, Wegdek, Kruispunt, Wegtype. Bij Weer en
+  Wegdek worden categorieën onder 1 % samengevoegd tot "Overige" (de leden staan onder de
+  grafiek); bij Licht niet. "Onbekend" blijft overal apart. Aandeel ernstig met het gemiddelde als
+  stippellijn; staven met minder dan 30 fietsongevallen zijn grijs.
+- **Tegenpartij:** de weggebruiker (1 of 2) die niet de fiets is. Zijn beide een fiets, dan staat
+  het ongeval onder "Fiets (twee fietsen)". "Eén bestuurder, geen hindernis" en "tegen een
+  hindernis" zijn eenzijdige ongevallen. Het aandeel ernstig zegt niets over schuld, snelheid of
+  massa.
+- **Geen heatmap:** de ranglijst met trend en de overige visuals volstaan om te analyseren en te
+  presenteren.
 - **Maatzinnen:** concreet en eenvoudig, met één voorbeeld met echte cijfers; geen herhaalde,
   bijna gelijke zinnen per eenheid.

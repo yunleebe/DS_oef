@@ -372,6 +372,24 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
   5,7 % en 5,4 %); een mogelijke verklaring is dat lichtere ongevallen minder volledig ingevuld
   worden (niet in de data bevestigd). Kruispunt: 43,4 % op een kruispunt, 9,7 % ernstig; buiten een
   kruispunt 11,8 %. Gecontroleerd: alle vijf tellen op tot 71.749 (ernstig 7.829).
+- **Tabblad Tegenpartij (`maak_tegenpartij`):** dezelfde twee grafieken als bij Omstandigheden
+  (links aantal fietsongevallen met %, rechts aandeel ernstig met het gemiddelde als stippellijn, grijs
+  onder 30). Regel: is Road User Type1 de fiets, dan is Type2 de tegenpartij, en omgekeerd; zijn beide
+  een fiets, dan staat het ongeval onder "Fiets (twee fietsen)". "Eén bestuurder, geen hindernis" en
+  "Een weggebruiker tegen een hindernis" zijn ongevallen zonder andere weggebruiker (eenzijdig); die
+  labels komen uit Dim_Road_User. Standaard (71.749 fietsongevallen): personenauto 40.419 (56,3 %; 8,3 %
+  ernstig), fiets 6.785 (9,5 %; 13,3 %), één bestuurder 6.270 (18,3 % ernstig), lichte vrachtauto
+  4.223, hindernis 3.797 (17,1 %), voetganger 3.616 (10,6 %), bromfiets 2.406 (6,7 %), vrachtwagen
+  1.358 (28,4 %). Onafhankelijk nagerekend voor fiets + personenauto. Het aandeel ernstig zegt niet
+  wie de schuld heeft en houdt geen rekening met snelheid of massa. `toon_omstandigheid` wordt
+  hergebruikt, met eigen zinnen voor de tegenpartij.
+- **Heatmap geschrapt en klaarzetten voor Streamlit Cloud:** Yun vond de heatmap niet meer nodig
+  ("het is al voldoende om te kunnen analyseren en presenteren"); de ranglijst met trend en de
+  sparkline volstaan. Voor de publieke URL: repo `yunleebe/DS_oef` (app.py in de hoofdmap), Python 3.13
+  op Cloud, `requirements.txt` met dezelfde versies als `syntra-ds` (streamlit 1.64.0, pandas 3.0.6,
+  openpyxl 3.1.5, pyproj 3.7.2, pyarrow 24.0.0, plotly 6.9.0). Gesimuleerd zonder Excel (enkel
+  `app.py`, `pipeline.py` en de 14 parquet-bestanden): de app start in 4,6 seconden zonder fouten.
+  De README bevat de stappen om te publiceren.
 - **Volgorde van de balken:** van hoog naar laag op aantal fietsongevallen (grootste bovenaan).
   Een eerste versie stond omgekeerd, omdat plotly bij horizontale balken de eerste categorie al
   bovenaan zet en ik dat nog eens omkeerde.

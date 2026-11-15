@@ -14,6 +14,18 @@ st.set_page_config(page_title="Fietsongevallen in België", layout="wide")
 
 LIJNKLEUR = "#2a6fdb"  # één serie = één kleur
 
+# Streamlit laat standaard ± 6 rem leeg boven de titel; dat verkleinen we, zodat er meer op het
+# scherm past zonder te scrollen. De titel zelf krijgt minder ruimte erboven.
+st.markdown(
+    """
+    <style>
+    [data-testid="stMainBlockContainer"] { padding-top: 2.5rem; }
+    [data-testid="stMainBlockContainer"] h1 { padding-top: 0; padding-bottom: 0.5rem; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # Filternaam in de data -> tekst in de zijbalk, in de volgorde van de zijbalk.
 FILTER_LABELS = {
     "Year": "Jaar",
@@ -612,9 +624,18 @@ OMSTANDIGHEDEN = [
 ]
 
 
-def toon_omstandigheid(gefilterd, tabellen, filternaam: str, overige_onder, woord: str) -> None:
-    """Fietsongevallen per categorie van één omstandigheid: aantal, en aandeel ernstig."""
-    data = pipeline.maak_omstandigheid(gefilterd, tabellen, filternaam, overige_onder)
+VAAK_VOORKOMEN = (
+    "bij een omstandigheid die vaak voorkomt (zoals droog weer of daglicht) gebeuren ook de meeste ongevallen"
+)
+
+
+def toon_omstandigheid(
+    gefilterd, tabellen, filternaam: str, overige_onder, woord: str,
+    data=None, vaak_voorkomen: str = VAAK_VOORKOMEN, onbekend_betekent: str = "de omstandigheid niet is ingevuld",
+) -> None:
+    """Fietsongevallen per categorie (van een omstandigheid of van de tegenpartij): aantal, en aandeel ernstig."""
+    if data is None:
+        data = pipeline.maak_omstandigheid(gefilterd, tabellen, filternaam, overige_onder)
     if data.empty:
         st.info("Geen fietsongevallen voor deze selectie.")
         return
@@ -667,8 +688,7 @@ def toon_omstandigheid(gefilterd, tabellen, filternaam: str, overige_onder, woor
 
     uitleg = (
         f"**Maat links:** aantal fietsongevallen (en % van alle {fmt_getal(totaal)}) per {woord}. Dit zegt niets over "
-        "het risico per fietser: bij een omstandigheid die vaak voorkomt (zoals droog weer of daglicht) gebeuren "
-        "ook de meeste ongevallen. **Maat rechts:** ernstige fietsongevallen als % van de fietsongevallen in die "
+        f"het risico per fietser: {vaak_voorkomen}. **Maat rechts:** ernstige fietsongevallen als % van de fietsongevallen in die "
         f"categorie; de stippellijn is het gemiddelde ({fmt_getal(gemiddeld, 1)} %). "
     )
     if not genoeg.all():
@@ -696,13 +716,32 @@ def toon_omstandigheid(gefilterd, tabellen, filternaam: str, overige_onder, woor
             if o["Serious_Share"] < gemiddeld else ""
         )
         st.caption(
-            f"**Onbekend** ({fmt_pct(o['Share'])} van de fietsongevallen) betekent dat de omstandigheid niet is "
-            f"ingevuld; het aandeel ernstig is daar {fmt_pct(o['Serious_Share'])}.{verklaring}"
+            f"**Onbekend** ({fmt_pct(o['Share'])} van de fietsongevallen) betekent dat {onbekend_betekent}; "
+            f"het aandeel ernstig is daar {fmt_pct(o['Serious_Share'])}.{verklaring}"
         )
     if filternaam == "Road Type":
         st.caption(
             "De autosnelweg staat standaard uit (zie de melding bovenaan); selecteer ze in de zijbalk om ze mee te rekenen."
         )
+
+
+def toon_tegenpartij(gefilterd, tabellen) -> None:
+    """Met wie botst de fietser, en hoe vaak is het ernstig."""
+    st.subheader("Met wie botst de fietser?")
+    data = pipeline.maak_tegenpartij(gefilterd, tabellen)
+    toon_omstandigheid(
+        gefilterd, tabellen, "Tegenpartij", None, "tegenpartij", data=data,
+        vaak_voorkomen="een tegenpartij die vaak voorkomt (zoals een personenauto) zit ook in de meeste ongevallen, "
+        "omdat er veel meer personenauto's dan vrachtwagens rondrijden",
+        onbekend_betekent="de tegenpartij niet is ingevuld",
+    )
+    st.caption(
+        "**Tegenpartij** is de weggebruiker (1 of 2) die niet de fiets is. Zijn beide partijen een fiets, dan staat "
+        f"het ongeval onder '{pipeline.FIETS_TEGEN_FIETS_LABEL}'. 'Eén bestuurder, geen hindernis' en 'Een "
+        "weggebruiker tegen een hindernis' zijn ongevallen zonder andere weggebruiker (eenzijdig). Een ongeval telt "
+        "één keer; het aandeel ernstig per tegenpartij zegt niet wie de schuld heeft en houdt geen rekening met "
+        "snelheid of massa."
+    )
 
 
 def toon_omstandigheden(gefilterd, tabellen) -> None:
@@ -798,7 +837,7 @@ if not gefilterd.empty:
     with tab_omstandigheden:
         toon_omstandigheden(gefilterd, tabellen)
     with tab_tegenpartij:
-        st.caption("Dit onderdeel komt in een volgende stap.")
+        toon_tegenpartij(gefilterd, tabellen)
 else:
     for tab_leeg in (tab_trend, tab_kaart, tab_waar, tab_wanneer, tab_omstandigheden, tab_tegenpartij):
         with tab_leeg:

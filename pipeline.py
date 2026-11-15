@@ -733,6 +733,11 @@ def maak_omstandigheid(
     if overige_onder is not None and totaal:
         aandeel = categorie.map(categorie.value_counts()) / totaal * 100
         categorie = categorie.where((aandeel >= overige_onder) | (categorie == ONBEKEND_LABEL), OVERIGE_LABEL)
+    return _tel_categorieen(categorie, ernstig, totaal)
+
+
+def _tel_categorieen(categorie: pd.Series, ernstig: pd.Series, totaal: int) -> pd.DataFrame:
+    """Tel per categorie de fietsongevallen en de ernstige, met aandelen; "Overige" staat onderaan."""
     resultaat = pd.DataFrame({
         "Bike_Accidents": categorie.groupby(categorie).size(),
         "Serious_Bike_Accidents": ernstig.groupby(categorie).sum(),
@@ -743,6 +748,26 @@ def maak_omstandigheid(
     if OVERIGE_LABEL in resultaat.index:
         resultaat = pd.concat([resultaat.drop(OVERIGE_LABEL), resultaat.loc[[OVERIGE_LABEL]]])
     return resultaat
+
+
+FIETS_TEGEN_FIETS_LABEL = "Fiets (twee fietsen)"
+
+
+def maak_tegenpartij(gefilterd: pd.DataFrame, tabellen: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Fietsongevallen per tegenpartij: de weggebruiker (1 of 2) die niet de fiets is.
+
+    Is Road User Type1 de fiets, dan is Type2 de tegenpartij, en omgekeerd. Zijn beide een fiets, dan
+    is de tegenpartij "Fiets (twee fietsen)". Bij "één bestuurder, geen hindernis" en "tegen een
+    hindernis" is er geen andere weggebruiker; die labels komen uit Dim_Road_User.
+    Zelfde kolommen als `maak_omstandigheid`."""
+    fietsen = filter_fietsongevallen(gefilterd, tabellen["Dim_Road_User"])
+    ernstig = _is_ernstig(fietsen, tabellen["Dim_Class_Accidents"])
+    type1, type2 = fietsen["Road User Type1 ID"], fietsen["Road User Type2 ID"]
+    tegen = type2.where(type1 == FIETS_ID, type1)
+    labels = tabellen["Dim_Road_User"].set_index("Road User Type ID")["Road User Type"]
+    categorie = tegen.map(labels).fillna(ONBEKEND_LABEL)
+    categorie = categorie.where(~((type1 == FIETS_ID) & (type2 == FIETS_ID)), FIETS_TEGEN_FIETS_LABEL)
+    return _tel_categorieen(categorie, ernstig, len(fietsen))
 
 
 def aantal_autosnelweg(tabellen: dict[str, pd.DataFrame]) -> int:
