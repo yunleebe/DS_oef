@@ -15,12 +15,17 @@ st.set_page_config(page_title="Fietsongevallen in België", layout="wide")
 LIJNKLEUR = "#2a6fdb"  # één serie = één kleur
 
 # Streamlit laat standaard ± 6 rem leeg boven de titel; dat verkleinen we, zodat er meer op het
-# scherm past zonder te scrollen. De titel zelf krijgt minder ruimte erboven.
+# scherm past zonder te scrollen. De titel zelf krijgt minder ruimte erboven. Ook de maatzinnen
+# (captions) worden groter, want ze bevatten belangrijke uitleg.
 st.markdown(
     """
     <style>
     [data-testid="stMainBlockContainer"] { padding-top: 2.5rem; }
     [data-testid="stMainBlockContainer"] h1 { padding-top: 0; padding-bottom: 0.5rem; }
+    /* Maatzinnen (st.caption): even groot als gewone tekst (16 px) en minder bleek dan standaard. */
+    [data-testid="stCaptionContainer"],
+    [data-testid="stCaptionContainer"] p,
+    [data-testid="stCaptionContainer"] li { font-size: 1rem; color: inherit; opacity: 0.85; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -311,7 +316,7 @@ def toon_kaart(gefilterd, tabellen) -> None:
             "dan de oudere jaren. Vergelijk jaren op de kaart dus voorzichtig."
         )
 
-    with st.expander("Ongevallen zonder coördinaten, per provincie en jaar (%)"):
+    with st.expander("Ongevallen zonder coördinaten, per provincie en jaar (%)", expanded=True):
         tabel = pipeline.zonder_coordinaten_per_provincie_jaar(ongevallen, tabellen["Dim_NIS"])
         tabel.columns = [str(k) for k in tabel.columns]
         tabel = tabel.map(lambda x: "–" if x != x else fmt_getal(x, 1)).reset_index(names="Provincie")

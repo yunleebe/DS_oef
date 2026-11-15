@@ -393,6 +393,14 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
 - **Filter Jaar aflopend:** Yun wil in de zijbalk eerst de recente jaren zien (2024 bovenaan). Reden:
   de recentste jaren zijn meestal het meest relevant. Enkel de volgorde van de keuzelijst verandert
   (`filter_opties`); de gekozen jaren worden alleen met `isin` gebruikt, dus de cijfers blijven gelijk.
+- **Maatzinnen groter (optie 1):** Yun vond de tekst onder de grafieken te klein. `st.caption` is
+  standaard ± 14 px en lichtgrijs. Eén CSS-regel in `app.py` maakt alle captions 16 px, met de
+  tekstkleur van het thema en 85 % dekking (leesbaarder, maar nog steeds duidelijk secundair). Dat
+  geldt ook voor de caption in de zijbalk. Gekozen boven een aparte `maatzin()`-helper (enkel de
+  maatzinnen), omdat alle uitleg onder de visuals even belangrijk is.
+- **Tabel "zonder coördinaten" standaard open (tabblad Kaart):** Yun wil de tabel direct zien, zonder
+  eerst op de uitklapper te klikken (`expanded=True`). Reden: het percentage zonder coördinaten bepaalt
+  hoe voorzichtig je de kaart leest.
 - **Tegenpartij "Onbekend" blijft Onbekend:** Yun vroeg of de 530 fietsongevallen waarbij de andere
   partij code 99 "Onbekend" heeft (242 met Type1 onbekend + Type2 fiets, 288 omgekeerd; 0,7 % van de
   71.881 fietsongevallen) als eenzijdig ongeval moesten tellen. Antwoord: nee. De data zegt niet of
