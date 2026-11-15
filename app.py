@@ -26,25 +26,40 @@ st.markdown(
     [data-testid="stCaptionContainer"],
     [data-testid="stCaptionContainer"] p,
     [data-testid="stCaptionContainer"] li { font-size: 1rem; color: inherit; opacity: 0.85; }
-    /* Tabbladen: groter, met ruimte ertussen, bovenhoeken licht afgerond; het gekozen tabblad is donkerblauw (#156082). */
-    [data-testid="stTabs"] [role="tablist"] { gap: 0.5rem; padding: 0.25rem 0 0 0; }
+    /* Tabbladen: trapeziumvorm met afgeronde bovenhoeken die licht overlappen; gekozen tabblad donkerblauw
+       (#156082) met witte tekst, de andere wit met grijze hoofdletters; onder de rij een dikke lijn.
+       De vorm zit in ::before (clip-path), zodat de tekst recht blijft. */
+    [data-testid="stTabs"] [role="tablist"] {
+        gap: 0; padding: 0.6rem 0.75rem 0 0.75rem; background: transparent;
+        border-bottom: 2px solid #156082; box-shadow: none;
+    }
     [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"] {
-        height: auto; padding: 0.55rem 1.5rem; border-radius: 10px 10px 0 0;
-        background: rgba(21, 96, 130, 0.08); border: 1px solid rgba(21, 96, 130, 0.25); border-bottom: none;
-        transition: background 0.15s;
+        --flank: 16px; --vorm: polygon(0.0px 48.0px, 11.9px 12.3px, 13.2px 9.1px, 15.0px 6.3px, 17.0px 4.0px, 19.5px 2.3px, 22.3px 1.0px, 25.5px 0.3px, 29.0px 0.0px, calc(100% - 29.0px) 0.0px, calc(100% - 25.5px) 0.3px, calc(100% - 22.3px) 1.0px, calc(100% - 19.5px) 2.3px, calc(100% - 17.0px) 4.0px, calc(100% - 15.0px) 6.3px, calc(100% - 13.2px) 9.1px, calc(100% - 11.9px) 12.3px, calc(100% - 0.0px) 48.0px);
+        position: relative; isolation: isolate; height: 48px; box-sizing: border-box;
+        padding: 0 calc(var(--flank) + 1rem); margin-left: calc(-1 * var(--flank));
+        background: transparent; border: none; border-radius: 0;
+        filter: drop-shadow(0 -1px 3px rgba(0, 0, 0, 0.18));
     }
-    [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"] p { font-size: 1.15rem; font-weight: 600; }
+    [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"]:first-child { margin-left: 0; }
+    [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"]::before {
+        content: ""; position: absolute; inset: 0; z-index: -1; transition: background 0.15s;
+        background: #ffffff; clip-path: var(--vorm);
+    }
+    [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"] p {
+        font-size: 1.05rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; color: #5f6368;
+    }
     [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"] .react-aria-SelectionIndicator { display: none; }
-    [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"][data-hovered] {
-        background: rgba(21, 96, 130, 0.18);
-    }
-    [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"][aria-selected="true"] {
-        background: #156082; border-color: #156082;
-    }
+    [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"][data-hovered]::before { background: #e6eff3; }
+    [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"][data-hovered] p { color: #156082; }
+    [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"][aria-selected="true"] { z-index: 2; }
+    [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"][aria-selected="true"]::before { background: #156082; }
     [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"][aria-selected="true"] p { color: #ffffff; }
     /* Sub-tabbladen (Omstandigheden) iets kleiner, zodat het onderscheid met de hoofdtabbladen blijft. */
-    [data-testid="stTabs"] [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"] { padding: 0.35rem 1rem; }
-    [data-testid="stTabs"] [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"] p { font-size: 1rem; }
+    [data-testid="stTabs"] [data-testid="stTabs"] [role="tablist"] { padding-top: 0.4rem; border-bottom-width: 1.5px; }
+    [data-testid="stTabs"] [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"] {
+        --flank: 12px; --vorm: polygon(0.0px 38.0px, 9.0px 9.5px, 10.0px 7.0px, 11.3px 4.9px, 12.9px 3.1px, 14.7px 1.8px, 16.9px 0.8px, 19.3px 0.2px, 22.0px 0.0px, calc(100% - 22.0px) 0.0px, calc(100% - 19.3px) 0.2px, calc(100% - 16.9px) 0.8px, calc(100% - 14.7px) 1.8px, calc(100% - 12.9px) 3.1px, calc(100% - 11.3px) 4.9px, calc(100% - 10.0px) 7.0px, calc(100% - 9.0px) 9.5px, calc(100% - 0.0px) 38.0px); height: 38px;
+    }
+    [data-testid="stTabs"] [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"] p { font-size: 0.9rem; }
     </style>
     """,
     unsafe_allow_html=True,

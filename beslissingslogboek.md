@@ -406,9 +406,26 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
   onderstreping van Streamlit verborgen en een hoverstand. Een eerste versie met volledig ronde
   "pillen" was Yun te ovaal; op basis van een voorbeeld-screenshot zijn het nu rechthoekige tabbladen
   met enkel de bovenhoeken afgerond (10 px) en het gekozen tabblad donkerblauw (`#156082`, kleur uit
-  het voorbeeld) met witte tekst. Sub-tabbladen (Omstandigheden) zijn iets kleiner (1 rem). Technisch:
+  het voorbeeld) met witte tekst. Daarna wilde Yun de knoppen 15 % korter, zonder ruimte ertussen en
+  met schuine zijkanten (20 graden): nu parallelogrammen die tegen elkaar sluiten (`clip-path` op
+  `::before`, zodat de tekst recht blijft). Gemeten: de zeven tabbladen samen zijn 743 px breed tegenover
+  883 px voordien (-16 %). Aanname: "20 %" gelezen als een hoek van 20 graden, en beide zijkanten
+  leunen dezelfde kant op (zo sluiten ze zonder tussenruimte aan). Yun vond de tekst daarna te krap
+  tegen de schuine rand en wilde afgeronde bovenhoeken: de vorm is nu een `skewX(-20deg)` met
+  `border-radius: 10px 10px 0 0` (in plaats van `clip-path`, dat niet kan afronden), en de zijruimte
+  is groter (1,35 rem). Gemeten: de zeven tabbladen zijn samen 834 px breed (883 px in de rechthoekige
+  versie), dus de eerdere verkorting van 15 % is met opzet grotendeels teruggedraaid. Sub-tabbladen (Omstandigheden) zijn iets kleiner (1 rem). Technisch:
   in Streamlit 1.64 is een tabblad een `div` met `data-testid="stTab"`, geen `button`; gecontroleerd
   in een echte browser (Edge, DevTools).
+  **Definitieve vorm (voorbeeld van Yun, map `screenshot button`):** de kleur `#156082` blijft, het
+  design volgt het voorbeeld: trapeziumvormige tabbladen die licht overlappen, met sterk afgeronde
+  bovenhoeken (vorm als `clip-path: polygon(...)`, berekend met een Bezier-curve), het gekozen tabblad
+  donkerblauw met witte tekst, de andere wit met grijze hoofdletters en een zachte schaduw, en een
+  lijn in `#156082` eronder (eerst 4 px; Yun wilde eerst 70 % en daarna 50 % van de
+  oorspronkelijke dikte: nu 2 px, bij de sub-tabbladen 1,5 px). De lichtblauwe balk achter de tabbladen heeft Yun laten
+  schrappen (screenshot in de map `achtergrond kleur`): de achtergrond van de rij is nu transparant. Dit vervangt de parallelogramvorm
+  hierboven. Aanname: hoofdletters en wit voor de niet-gekozen tabbladen komen uit het voorbeeld;
+  niet gecontroleerd in dark mode. De zeven tabbladen zijn samen 944 px breed (was 834).
 - **Tegenpartij "Onbekend" blijft Onbekend:** Yun vroeg of de 530 fietsongevallen waarbij de andere
   partij code 99 "Onbekend" heeft (242 met Type1 onbekend + Type2 fiets, 288 omgekeerd; 0,7 % van de
   71.881 fietsongevallen) als eenzijdig ongeval moesten tellen. Antwoord: nee. De data zegt niet of
