@@ -26,20 +26,20 @@ st.markdown(
     [data-testid="stCaptionContainer"],
     [data-testid="stCaptionContainer"] p,
     [data-testid="stCaptionContainer"] li { font-size: 1rem; color: inherit; opacity: 0.85; }
-    /* Tabbladen als "pillen": groter, met ruimte ertussen; het gekozen tabblad is blauw gevuld. */
-    [data-testid="stTabs"] [role="tablist"] { gap: 0.6rem; padding: 0.25rem 0.25rem 0.6rem 0.25rem; }
+    /* Tabbladen: groter, met ruimte ertussen, bovenhoeken licht afgerond; het gekozen tabblad is donkerblauw (#156082). */
+    [data-testid="stTabs"] [role="tablist"] { gap: 0.5rem; padding: 0.25rem 0 0 0; }
     [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"] {
-        height: auto; padding: 0.55rem 1.25rem; border-radius: 999px;
-        background: rgba(42, 111, 219, 0.08); border: 1px solid rgba(42, 111, 219, 0.25);
-        transition: background 0.15s, transform 0.15s;
+        height: auto; padding: 0.55rem 1.5rem; border-radius: 10px 10px 0 0;
+        background: rgba(21, 96, 130, 0.08); border: 1px solid rgba(21, 96, 130, 0.25); border-bottom: none;
+        transition: background 0.15s;
     }
     [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"] p { font-size: 1.15rem; font-weight: 600; }
     [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"] .react-aria-SelectionIndicator { display: none; }
     [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"][data-hovered] {
-        background: rgba(42, 111, 219, 0.18); transform: translateY(-1px);
+        background: rgba(21, 96, 130, 0.18);
     }
     [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"][aria-selected="true"] {
-        background: #2a6fdb; border-color: #2a6fdb;
+        background: #156082; border-color: #156082;
     }
     [data-testid="stTabs"] [role="tablist"] [data-testid="stTab"][aria-selected="true"] p { color: #ffffff; }
     /* Sub-tabbladen (Omstandigheden) iets kleiner, zodat het onderscheid met de hoofdtabbladen blijft. */

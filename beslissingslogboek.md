@@ -401,11 +401,14 @@ zonder slachtoffers zitten niet in de dataset). Extra bron: `data/Variabelenlijs
 - **Tabel "zonder coördinaten" standaard open (tabblad Kaart):** Yun wil de tabel direct zien, zonder
   eerst op de uitklapper te klikken (`expanded=True`). Reden: het percentage zonder coördinaten bepaalt
   hoe voorzichtig je de kaart leest.
-- **Tabbladen als pillen:** Yun wilde grotere tabbladnamen, meer ruimte ertussen en een leuker
-  design. Via CSS in `app.py`: tekst 1,15 rem (vet), 0,6 rem ruimte ertussen, afgeronde pillen met
-  lichtblauwe achtergrond, hoverstand, en het gekozen tabblad blauw gevuld (`#2a6fdb`, dezelfde
-  kleur als de grafieken) met witte tekst. De onderstreping van Streamlit is verborgen. Sub-tabbladen
-  (Omstandigheden) zijn iets kleiner (1 rem).
+- **Tabbladen groter en met ruimte ertussen:** Yun wilde grotere tabbladnamen, meer ruimte ertussen
+  en een leuker design. Via CSS in `app.py`: tekst 1,15 rem (vet), 0,5 rem ruimte ertussen, de
+  onderstreping van Streamlit verborgen en een hoverstand. Een eerste versie met volledig ronde
+  "pillen" was Yun te ovaal; op basis van een voorbeeld-screenshot zijn het nu rechthoekige tabbladen
+  met enkel de bovenhoeken afgerond (10 px) en het gekozen tabblad donkerblauw (`#156082`, kleur uit
+  het voorbeeld) met witte tekst. Sub-tabbladen (Omstandigheden) zijn iets kleiner (1 rem). Technisch:
+  in Streamlit 1.64 is een tabblad een `div` met `data-testid="stTab"`, geen `button`; gecontroleerd
+  in een echte browser (Edge, DevTools).
 - **Tegenpartij "Onbekend" blijft Onbekend:** Yun vroeg of de 530 fietsongevallen waarbij de andere
   partij code 99 "Onbekend" heeft (242 met Type1 onbekend + Type2 fiets, 288 omgekeerd; 0,7 % van de
   71.881 fietsongevallen) als eenzijdig ongeval moesten tellen. Antwoord: nee. De data zegt niet of
